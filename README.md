@@ -69,8 +69,9 @@ A comprehensive Flutter application designed to help parents, educators, and the
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/bloomora.git
-   cd bloomora
+   git clone https://github.com/AmazingPathKids/Bloomora.git
+   cd Bloomora
+   git checkout mvp
    ```
 
 2. **Install dependencies**
