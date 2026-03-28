@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage>
+class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -49,9 +51,9 @@ class _SplashPageState extends State<SplashPage>
 
   void _navigateToNextScreen() {
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/intro');
-      }
+      if (!mounted) return;
+      final isAuthenticated = ref.read(authProvider).isAuthenticated;
+      context.go(isAuthenticated ? '/dashboard' : '/intro');
     });
   }
 

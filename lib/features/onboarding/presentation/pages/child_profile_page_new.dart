@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../providers/onboarding_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/models/child_model.dart';
 
 class ChildProfilePageNew extends ConsumerStatefulWidget {
@@ -209,10 +211,34 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
       // Use calculated age group (validated non-null by _isAgeValid check above)
       final ageGroup = (_ageGroup ?? '1-2').replaceAll(' years', '');
 
-      // Create child model
+      final parentId = ref.read(currentUserProvider)?.id ?? '';
+
+      // Insert child into Supabase
+      final now = DateTime.now();
+      final response = await SupabaseService.client
+          .from('children')
+          .insert({
+            'parent_id': parentId,
+            'name': _nameController.text.trim(),
+            'date_of_birth': _selectedDate!.toIso8601String(),
+            'birth_time': _birthTimeController.text.trim().isEmpty
+                ? null
+                : _birthTimeController.text.trim(),
+            'gender': _selectedGender,
+            'age_group': ageGroup,
+            'existing_diagnoses': _selectedDiagnoses,
+            'concerns': _selectedConcerns,
+            'is_premature': _isPremature,
+            'relationship': _relationship,
+            'created_at': now.toIso8601String(),
+            'updated_at': now.toIso8601String(),
+          })
+          .select()
+          .single();
+
       final child = ChildModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        parentId: ref.read(parentNotifierProvider)?.id ?? '',
+        id: response['id'] as String,
+        parentId: parentId,
         name: _nameController.text.trim(),
         dateOfBirth: _selectedDate!,
         birthTime: _birthTimeController.text.trim().isEmpty
@@ -222,20 +248,13 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
         ageGroup: ageGroup,
         existingDiagnoses: _selectedDiagnoses,
         concerns: _selectedConcerns,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: now,
+        updatedAt: now,
       );
 
-      // Save child data
       ref.read(childNotifierProvider.notifier).setChild(child);
 
-      // TODO: Implement actual API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Navigate to parent signup
-      if (mounted) {
-        context.go('/parent-signup');
-      }
+      if (mounted) context.go('/questionnaire');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

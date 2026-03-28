@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/glassmorphism_app_bar.dart';
+import '../providers/auth_provider.dart';
 
-class ParentSigninPage extends StatefulWidget {
+class ParentSigninPage extends ConsumerStatefulWidget {
   final String? email;
 
   const ParentSigninPage({super.key, this.email});
 
   @override
-  State<ParentSigninPage> createState() => _ParentSigninPageState();
+  ConsumerState<ParentSigninPage> createState() => _ParentSigninPageState();
 }
 
-class _ParentSigninPageState extends State<ParentSigninPage>
+class _ParentSigninPageState extends ConsumerState<ParentSigninPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -74,32 +76,48 @@ class _ParentSigninPageState extends State<ParentSigninPage>
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Simulate API call for sign in
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        // Navigate to questionnaire after successful sign in
-        context.go('/questionnaire');
-      }
+      await ref.read(authProvider.notifier).signIn(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+      // Router auth guard handles navigation to /dashboard
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(ref.read(authProvider).error ?? e.toString()),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email above first')),
+      );
+      return;
+    }
+    try {
+      await ref.read(authProvider.notifier).resetPassword(email);
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password reset email sent')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
       }
     }
   }
@@ -322,9 +340,7 @@ class _ParentSigninPageState extends State<ParentSigninPage>
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {
-                  // TODO: Implement forgot password
-                },
+                onPressed: _forgotPassword,
                 child: Text(
                   'Forgot Password?',
                   style: TextStyle(

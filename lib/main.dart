@@ -7,12 +7,20 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/api/api_client.dart';
+import 'core/services/supabase_service.dart';
+import 'features/auth/data/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load environment variables
   await dotenv.load(fileName: '.env');
+
+  // Initialize Supabase
+  await SupabaseService.initialize();
+
+  // Refresh session token if user was previously logged in
+  await AuthService.refreshSessionIfNeeded();
 
   // Initialize Hive for local storage
   await Hive.initFlutter();

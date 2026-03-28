@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/glassmorphism_app_bar.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ParentSignupPage extends ConsumerStatefulWidget {
   final String? email;
@@ -97,23 +98,22 @@ class _ParentSignupPageState extends ConsumerState<ParentSignupPage>
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement actual signup logic
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
-
-      // Navigate to questionnaire after successful signup
-      if (mounted) {
-        context.go('/questionnaire');
-      }
+      await ref.read(authProvider.notifier).signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            fullName: _nameController.text.trim(),
+          );
+      // Auth guard in router redirects to /dashboard on success;
+      // from dashboard the user can set up their child profile.
+      if (mounted) context.go('/child-profile');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Signup failed: ${e.toString()}'),
+            content: Text(ref.read(authProvider).error ?? e.toString()),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -123,11 +123,7 @@ class _ParentSignupPageState extends ConsumerState<ParentSignupPage>
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

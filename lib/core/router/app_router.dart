@@ -7,7 +7,7 @@ import '../../features/intro/presentation/pages/intro_page.dart';
 import '../../features/auth/presentation/pages/email_verification_page.dart';
 import '../../features/auth/presentation/pages/parent_signin_page.dart';
 import '../../features/onboarding/presentation/pages/parent_signup_page.dart';
-import '../../features/onboarding/presentation/pages/child_profile_page.dart';
+import '../../features/onboarding/presentation/pages/child_profile_page_new.dart';
 import '../../features/assessment/presentation/pages/questionnaire_page.dart';
 import '../../features/assessment/presentation/pages/priority_selection_page.dart';
 import '../../features/assessment/presentation/pages/loading_analysis_page.dart';
@@ -17,26 +17,64 @@ import '../../features/activities/presentation/pages/activity_completion_page.da
 import '../../features/progress/presentation/pages/progress_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
+
+// Routes that require authentication
+const _protectedRoutes = {
+  '/dashboard',
+  '/questionnaire',
+  '/priority-selection',
+  '/loading-analysis',
+  '/progress',
+  '/search',
+  '/profile',
+};
+
+// Routes only accessible when unauthenticated
+const _authOnlyRoutes = {
+  '/email-verification',
+  '/parent-signin',
+  '/parent-signup',
+};
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: _AuthRefreshNotifier(ref),
+    redirect: (context, state) {
+      final authState = ref.read(authProvider);
+      final location = state.matchedLocation;
+
+      // Don't redirect while auth state is still resolving
+      if (authState.isUnknown) return null;
+
+      final isAuthenticated = authState.isAuthenticated;
+      final isProtected = _protectedRoutes.any(
+        (r) => location.startsWith(r),
+      );
+      final isAuthOnly = _authOnlyRoutes.any(
+        (r) => location.startsWith(r),
+      );
+
+      // Unauthenticated user hitting a protected route → email verification
+      if (!isAuthenticated && isProtected) return '/email-verification';
+
+      // Authenticated user hitting an auth-only route → dashboard
+      if (isAuthenticated && isAuthOnly) return '/dashboard';
+
+      return null;
+    },
     routes: [
-      // Splash Screen
       GoRoute(
         path: '/splash',
         name: 'splash',
         builder: (context, state) => const SplashPage(),
       ),
-
-      // Intro Flow
       GoRoute(
         path: '/intro',
         name: 'intro',
         builder: (context, state) => const IntroPage(),
       ),
-
-      // Authentication Flow
       GoRoute(
         path: '/email-verification',
         name: 'email-verification',
@@ -58,15 +96,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return ParentSignupPage(email: email);
         },
       ),
-
-      // Onboarding Flow
       GoRoute(
         path: '/child-profile',
         name: 'child-profile',
         builder: (context, state) => const ChildProfilePageNew(),
       ),
-
-      // Assessment Flow
       GoRoute(
         path: '/questionnaire',
         name: 'questionnaire',
@@ -82,8 +116,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'loading-analysis',
         builder: (context, state) => const LoadingAnalysisPage(),
       ),
-
-      // Main App Flow
       GoRoute(
         path: '/dashboard',
         name: 'dashboard',
@@ -126,20 +158,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
               'Page not found',
               style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'The page you are looking for does not exist.',
-              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -152,3 +175,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+// Bridges Riverpod auth state changes into GoRouter's Listenable refresh system
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen(authProvider, (_, __) => notifyListeners());
+  }
+}

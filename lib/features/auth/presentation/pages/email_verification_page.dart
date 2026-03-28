@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/glassmorphism_app_bar.dart';
+import '../../../auth/data/services/auth_service.dart';
 
 class EmailVerificationPage extends StatefulWidget {
   const EmailVerificationPage({super.key});
@@ -64,25 +65,16 @@ class _EmailVerificationPageState extends State<EmailVerificationPage>
   Future<void> _checkEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Simulate API call to check if email exists
-      await Future.delayed(const Duration(seconds: 2));
-
-      // For demo purposes, let's assume email exists if it contains "signin"
-      final emailExists =
-          _emailController.text.toLowerCase().contains('signin');
+      final email = _emailController.text.trim();
+      final exists = await AuthService.emailExists(email);
 
       if (mounted) {
-        final email = _emailController.text.trim();
-        if (emailExists) {
-          // Email exists - redirect to sign in
+        if (exists) {
           context.go('/parent-signin?email=${Uri.encodeComponent(email)}');
         } else {
-          // Email doesn't exist - redirect to sign up
           context.go('/parent-signup?email=${Uri.encodeComponent(email)}');
         }
       }
@@ -96,11 +88,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage>
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
