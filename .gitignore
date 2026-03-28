@@ -92,3 +92,15 @@ out/
 **/api_keys.dart
 **/secrets.dart
 **/config/secrets.dart
+
+# IntelliJ
+*.iml
+
+# Internal docs (keep locally, not in repo)
+Docs/*.pdf
+Docs/*.docx
+docs/internal/
+
+# Firebase
+google-services.json
+GoogleService-Info.plist

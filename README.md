@@ -1,4 +1,5 @@
 # 🌸 Bloomora
+
 ## AmazingPath Kids - Child Development Platform
 
 **Bloomora** is a comprehensive child development platform that helps parents track, assess, and support their child's growth through AI-powered insights and personalized activities. Built for the MVP phase with a focus on investor readiness and government appeal.
@@ -6,6 +7,7 @@
 ## 🚀 **MVP Features**
 
 ### **Frontend (Flutter)**
+
 - **Modern UI Design**: Glassmorphism effects with dark blue color palette
 - **Child Profile Management**: Age-based development tracking
 - **Assessment System**: AI-powered developmental assessments with Yes/No questions
@@ -15,6 +17,7 @@
 - **Cross-Platform**: Native performance on iOS and Android
 
 ### **Backend (Node.js + Express)**
+
 - **RESTful API**: Complete backend infrastructure
 - **Database**: PostgreSQL with Supabase
 - **Authentication**: Secure user management
@@ -22,6 +25,7 @@
 - **Real-time Features**: Live progress updates
 
 ### **Database Schema**
+
 - **Child Profiles**: User management with age calculations
 - **Development Domains**: 6 core areas (Fine Motor, Gross Motor, Cognitive, Language & Communication, Social & Emotional, Self-Care Skills)
 - **Assessment System**: Questions, sessions, responses, and results
@@ -32,6 +36,7 @@
 ## 🛠️ **Tech Stack**
 
 ### **Frontend**
+
 - **Flutter**: Cross-platform mobile development
 - **Riverpod**: State management
 - **GoRouter**: Navigation
@@ -39,17 +44,20 @@
 - **Material Design 3**: Modern UI components
 
 ### **Backend**
+
 - **Node.js + Express**: API server
 - **Supabase**: Database and authentication
 - **OpenAI GPT-4**: AI analysis and recommendations
 - **Railway**: Cloud hosting
 
 ### **Database**
+
 - **PostgreSQL**: Primary database
 - **Row Level Security**: GDPR-compliant data protection
 - **Real-time Subscriptions**: Live updates
 
 ### **AI/ML Features**
+
 - **Assessment Analysis**: GPT-4 powered development insights
 - **Activity Recommendations**: AI-generated personalized suggestions
 - **Progress Insights**: Smart progress analysis and encouragement
@@ -71,13 +79,16 @@
 ## 🚀 **Quick Start**
 
 ### **Prerequisites**
+
 - Flutter SDK
 - Node.js
 - Supabase account
 - OpenAI API key
 
 ### **Setup Instructions**
+
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/AmazingPathKids/Bloomora.git
    cd Bloomora
@@ -85,11 +96,13 @@
    ```
 
 2. **Set up Supabase**
+
    - Create Supabase project
    - Run `database_schema.sql`
    - Get API keys
 
 3. **Deploy Backend**
+
    - Deploy `sample_backend/` to Railway
    - Configure environment variables
 
@@ -100,6 +113,7 @@
    ```
 
 ### **Detailed Setup**
+
 - **[MVP Setup Guide](MVP_SETUP_GUIDE.md)**: Complete setup instructions
 - **[API Documentation](api_endpoints.md)**: Backend API reference
 - **[Database Schema](database_schema.sql)**: Database structure
@@ -125,12 +139,14 @@ Bloomora/
 ## 💰 **Cost Structure**
 
 ### **MVP Phase**
+
 - **Supabase Free Tier**: $0 (500MB DB, 2GB bandwidth)
 - **Railway Basic**: $5 (512MB RAM, 1GB storage)
 - **OpenAI API**: $10-20 (pay-per-use)
 - **Total**: $15-25/month
 
 ### **Scaling Phase**
+
 - **1,000 users**: ~$30-50/month
 - **10,000 users**: ~$100-200/month
 - **100,000 users**: ~$500-1000/month
@@ -138,6 +154,7 @@ Bloomora/
 ## 🔒 **Security & Compliance**
 
 ### **Data Protection**
+
 - **Encryption**: All sensitive data encrypted at rest and in transit
 - **HTTPS**: All API communications encrypted
 - **JWT**: Secure token-based authentication
@@ -145,6 +162,7 @@ Bloomora/
 - **GDPR**: Compliant data handling
 
 ### **Privacy Features**
+
 - **Data Anonymization**: Remove PII when possible
 - **Consent Management**: Clear data usage policies
 - **Data Export**: Allow parents to export their data
@@ -153,12 +171,14 @@ Bloomora/
 ## 🎯 **MVP Goals**
 
 ### **For Investors**
+
 - **Scalable Architecture**: Ready for enterprise deployment
 - **AI Integration**: Advanced assessment analysis
 - **User Engagement**: Comprehensive tracking and analytics
 - **Cost Effective**: $15-25/month operational costs
 
 ### **For Government Officials**
+
 - **Data Security**: GDPR-compliant data handling
 - **Evidence-Based**: Research-backed development tracking
 - **Accessibility**: Inclusive design for all families
@@ -167,18 +187,21 @@ Bloomora/
 ## 🔮 **Future Roadmap**
 
 ### **Phase 1: MVP Launch** (Months 1-3)
+
 - ✅ Core functionality deployment
 - ✅ User acquisition and feedback
 - ✅ Basic AI integration
 - ✅ Modern UI with glassmorphism design
 
 ### **Phase 2: Enhanced Features** (Months 4-6)
+
 - 🔄 Advanced analytics
 - 🔄 Real-time notifications
 - 🔄 Parent education content
 - 🔄 Activity recommendation engine
 
 ### **Phase 3: Scale & Optimize** (Months 7+)
+
 - 🔄 Multi-language support
 - 🔄 Healthcare provider integration
 - 🔄 Advanced AI features
