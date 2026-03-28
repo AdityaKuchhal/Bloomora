@@ -52,6 +52,7 @@ coverage/
 # Environment variables
 .env
 .env.local
+.env.staging
 .env.production
 
 # IDE
@@ -101,6 +102,7 @@ Docs/*.pdf
 Docs/*.docx
 docs/internal/
 
-# Firebase
+# Firebase — generated config files with real credentials
 google-services.json
 GoogleService-Info.plist
+firebase_options.dart

@@ -1,4 +1,4 @@
-import 'package:amazing_path_kids/core/api/api_client.dart';
+import '../../../../core/api/api_client.dart';
 
 class ChildProfileService {
   // Create child profile

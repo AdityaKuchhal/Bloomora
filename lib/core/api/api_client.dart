@@ -1,148 +1,170 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../config/app_config.dart';
 
 class ApiClient {
-  // Replace with your actual Railway URL
-  static const String baseUrl = 'https://bloomora-api.up.railway.app/api/v1';
+  static const _storage = FlutterSecureStorage();
+  static const _tokenKey = 'auth_token';
+  static const _timeout = Duration(seconds: 15);
 
   static String? _token;
 
-  // Initialize with token from storage
+  static String get baseUrl => AppConfig.apiBaseUrl;
+
+  // Initialize — loads stored token securely
   static Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('auth_token');
+    _token = await _storage.read(key: _tokenKey);
   }
 
-  // Set authentication token
   static Future<void> setToken(String token) async {
     _token = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    await _storage.write(key: _tokenKey, value: token);
   }
 
-  // Clear authentication token
   static Future<void> clearToken() async {
     _token = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+    await _storage.delete(key: _tokenKey);
   }
 
-  // Get headers with authentication
+  static bool get isAuthenticated => _token != null;
+
   static Map<String, String> _getHeaders() {
-    final headers = {
+    return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      if (_token != null) 'Authorization': 'Bearer $_token',
     };
-
-    if (_token != null) {
-      headers['Authorization'] = 'Bearer $_token';
-    }
-
-    return headers;
   }
 
-  // Handle API responses
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    final data = jsonDecode(response.body);
+    Map<String, dynamic> data;
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return data;
-    } else {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        data = decoded;
+      } else {
+        data = {'data': decoded};
+      }
+    } catch (_) {
       throw ApiException(
-        message: data['error']?['message'] ?? 'Unknown error',
-        code: data['error']?['code'] ?? 'UNKNOWN_ERROR',
+        message: 'Invalid response from server',
+        code: 'PARSE_ERROR',
         statusCode: response.statusCode,
       );
     }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    }
+
+    final errorMessage = (data['error'] is Map)
+        ? data['error']['message'] as String? ?? 'Unknown error'
+        : data['message'] as String? ?? 'Unknown error';
+
+    throw ApiException(
+      message: errorMessage,
+      code: (data['error'] is Map)
+          ? data['error']['code'] as String? ?? 'UNKNOWN_ERROR'
+          : 'UNKNOWN_ERROR',
+      statusCode: response.statusCode,
+    );
   }
 
-  // GET request
   static Future<Map<String, dynamic>> get(String endpoint) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _getHeaders(),
-      );
-
+      final response = await http
+          .get(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders())
+          .timeout(_timeout);
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-          message: 'No internet connection', code: 'NO_INTERNET');
+      throw ApiException(message: 'No internet connection', code: 'NO_INTERNET');
+    } on HttpException {
+      throw ApiException(message: 'Network error', code: 'NETWORK_ERROR');
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException(message: e.toString(), code: 'REQUEST_ERROR');
     }
   }
 
-  // POST request
   static Future<Map<String, dynamic>> post(
       String endpoint, Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _getHeaders(),
-        body: jsonEncode(data),
-      );
-
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: _getHeaders(),
+            body: jsonEncode(data),
+          )
+          .timeout(_timeout);
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-          message: 'No internet connection', code: 'NO_INTERNET');
+      throw ApiException(message: 'No internet connection', code: 'NO_INTERNET');
+    } on HttpException {
+      throw ApiException(message: 'Network error', code: 'NETWORK_ERROR');
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException(message: e.toString(), code: 'REQUEST_ERROR');
     }
   }
 
-  // PUT request
   static Future<Map<String, dynamic>> put(
       String endpoint, Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _getHeaders(),
-        body: jsonEncode(data),
-      );
-
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: _getHeaders(),
+            body: jsonEncode(data),
+          )
+          .timeout(_timeout);
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-          message: 'No internet connection', code: 'NO_INTERNET');
+      throw ApiException(message: 'No internet connection', code: 'NO_INTERNET');
+    } on HttpException {
+      throw ApiException(message: 'Network error', code: 'NETWORK_ERROR');
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException(message: e.toString(), code: 'REQUEST_ERROR');
     }
   }
 
-  // DELETE request
   static Future<Map<String, dynamic>> delete(String endpoint) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _getHeaders(),
-      );
-
+      final response = await http
+          .delete(Uri.parse('$baseUrl$endpoint'), headers: _getHeaders())
+          .timeout(_timeout);
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException(
-          message: 'No internet connection', code: 'NO_INTERNET');
+      throw ApiException(message: 'No internet connection', code: 'NO_INTERNET');
+    } on HttpException {
+      throw ApiException(message: 'Network error', code: 'NETWORK_ERROR');
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException(message: e.toString(), code: 'REQUEST_ERROR');
     }
   }
 }
 
-// Custom exception class
 class ApiException implements Exception {
   final String message;
   final String code;
   final int? statusCode;
 
-  ApiException({
+  const ApiException({
     required this.message,
     required this.code,
     this.statusCode,
   });
 
+  bool get isUnauthorized => statusCode == 401;
+  bool get isNotFound => statusCode == 404;
+  bool get isServerError => statusCode != null && statusCode! >= 500;
+  bool get isNetworkError => code == 'NO_INTERNET' || code == 'NETWORK_ERROR';
+
   @override
-  String toString() => 'ApiException: $message (Code: $code)';
+  String toString() => 'ApiException[$code]: $message (HTTP $statusCode)';
 }

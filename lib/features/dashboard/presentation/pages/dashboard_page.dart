@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../providers/dashboard_provider.dart';
+
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
@@ -52,6 +54,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         child: SafeArea(
           child: Column(
             children: [
+              // Error banner
+              Consumer(
+                builder: (context, ref, _) {
+                  final error = ref.watch(
+                      dashboardNotifierProvider.select((s) => s.error));
+                  if (error == null) return const SizedBox.shrink();
+                  return MaterialBanner(
+                    content: Text(error),
+                    actions: [
+                      TextButton(
+                        onPressed: () => ref
+                            .read(dashboardNotifierProvider.notifier)
+                            .clearError(),
+                        child: const Text('Dismiss'),
+                      ),
+                    ],
+                    backgroundColor: Colors.red.shade50,
+                    dividerColor: Colors.transparent,
+                  );
+                },
+              ),
+
               // Top Header Section
               _buildHeader(),
 

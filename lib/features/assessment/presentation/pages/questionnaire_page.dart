@@ -50,7 +50,9 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
   }
 
   void _onAnswerSelected(String answer) {
-    final questionsList = ref.read(questionsProvider).when(
+    final ageGroup =
+        ref.read(childNotifierProvider)?.ageGroup ?? '1-2';
+    final questionsList = ref.read(questionsProvider(ageGroup)).when(
           data: (questions) => questions,
           loading: () => <dynamic>[],
           error: (_, __) => <dynamic>[],
@@ -95,7 +97,8 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
   @override
   Widget build(BuildContext context) {
     final questionnaireState = ref.watch(questionnaireNotifierProvider);
-    final questions = ref.watch(questionsProvider);
+    final ageGroup = ref.watch(childNotifierProvider)?.ageGroup ?? '1-2';
+    final questions = ref.watch(questionsProvider(ageGroup));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -211,7 +214,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage> {
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
-                        ref.invalidate(questionsProvider);
+                        ref.invalidate(questionsProvider(ageGroup));
                       },
                       child: const Text('Retry'),
                     ),

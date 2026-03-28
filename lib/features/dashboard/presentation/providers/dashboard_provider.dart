@@ -10,6 +10,37 @@ class DashboardNotifier extends _$DashboardNotifier {
     return const DashboardState();
   }
 
+  Future<void> loadDashboardData(String childId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _fetchDashboardData(childId);
+      state = state.copyWith(
+        isLoading: false,
+        completedActivities: response['completedActivities'] as int? ?? 0,
+        totalActivities: response['totalActivities'] as int? ?? 0,
+        streakDays: response['streakDays'] as int? ?? 0,
+        totalMinutes: response['totalMinutes'] as int? ?? 0,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  // Placeholder — replace with real API call in Phase 1
+  Future<Map<String, dynamic>> _fetchDashboardData(String childId) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return {
+      'completedActivities': 3,
+      'totalActivities': 10,
+      'streakDays': 2,
+      'totalMinutes': 45,
+    };
+  }
+
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+
   void updateProgress(int completedActivities, int totalActivities) {
     state = state.copyWith(
       completedActivities: completedActivities,

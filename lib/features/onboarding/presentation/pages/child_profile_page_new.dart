@@ -206,13 +206,13 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
     });
 
     try {
-      // Use calculated age group
-      final ageGroup = _ageGroup!.replaceAll(' years', '');
+      // Use calculated age group (validated non-null by _isAgeValid check above)
+      final ageGroup = (_ageGroup ?? '1-2').replaceAll(' years', '');
 
       // Create child model
       final child = ChildModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        parentId: 'parent_id', // TODO: Get from parent data
+        parentId: ref.read(parentNotifierProvider)?.id ?? '',
         name: _nameController.text.trim(),
         dateOfBirth: _selectedDate!,
         birthTime: _birthTimeController.text.trim().isEmpty
@@ -510,7 +510,7 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Age: ${_childAgeInMonths! ~/ 12} years ${_childAgeInMonths! % 12} months (${_ageGroup!})',
+                    'Age: ${(_childAgeInMonths ?? 0) ~/ 12} years ${(_childAgeInMonths ?? 0) % 12} months (${_ageGroup ?? ''})',
                     style: TextStyle(
                       color: const Color(0xFF6C63FF),
                       fontWeight: FontWeight.w600,
@@ -899,7 +899,6 @@ class _BackgroundPainter extends CustomPainter {
 
     // Create wavy bottom edge
     final waveHeight = 20.0;
-    final waveLength = size.width / 4;
     for (double x = 0; x <= size.width; x += 1) {
       final y = size.height * 0.25 +
           waveHeight *

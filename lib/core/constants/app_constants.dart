@@ -3,8 +3,9 @@ class AppConstants {
   static const String appName = 'Bloomora';
   static const String appVersion = '1.0.0';
 
-  // API Configuration
-  static const String baseUrl = 'https://api.bloomora.com';
+  // API Configuration — single source of truth for all environments
+  // Override via AppConfig.baseUrl at runtime (loaded from .env)
+  static const String baseUrl = 'https://bloomora-api.up.railway.app/api/v1';
   static const String apiVersion = 'v1';
 
   // Storage Keys
