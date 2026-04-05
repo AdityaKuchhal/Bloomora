@@ -39,12 +39,12 @@ final parentNotifierProvider =
 );
 
 typedef _$ParentNotifier = AutoDisposeNotifier<ParentModel?>;
-String _$childNotifierHash() => r'607491f4afe9655b4a1bec0144547c54955d6cf3';
+String _$childNotifierHash() => r'67b98cce2981e978e619278421b3c7a6aebea8db';
 
 /// See also [ChildNotifier].
 @ProviderFor(ChildNotifier)
 final childNotifierProvider =
-    AutoDisposeNotifierProvider<ChildNotifier, ChildModel?>.internal(
+    NotifierProvider<ChildNotifier, ChildModel?>.internal(
   ChildNotifier.new,
   name: r'childNotifierProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -54,6 +54,6 @@ final childNotifierProvider =
   allTransitiveDependencies: null,
 );
 
-typedef _$ChildNotifier = AutoDisposeNotifier<ChildModel?>;
+typedef _$ChildNotifier = Notifier<ChildModel?>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

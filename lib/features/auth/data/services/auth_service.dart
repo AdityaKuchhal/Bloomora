@@ -33,21 +33,12 @@ class AuthService {
       data: {'full_name': fullName.trim()},
     );
 
-    if (response.user != null) {
-      // Upsert parent profile so we always have a row in `parents`
-      await SupabaseService.client.from('parents').upsert({
-        'id': response.user!.id,
-        'email': email.trim().toLowerCase(),
-        'name': fullName.trim(),
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-
-      // Store token in secure storage for ApiClient usage
-      final session = response.session;
-      if (session != null) {
-        await ApiClient.setToken(session.accessToken);
-      }
+    // Parent row is created automatically via DB trigger (handle_new_user).
+    // Only store the token if a session is immediately available
+    // (email confirmation disabled). If confirmation is required,
+    // the session arrives later via the auth stream.
+    if (response.session != null) {
+      await ApiClient.setToken(response.session!.accessToken);
     }
 
     return response;

@@ -1,0 +1,784 @@
+import 'dart:math' as math;
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/glass_components.dart';
+import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/services/supabase_service.dart';
+import '../providers/auth_provider.dart';
+import '../../../onboarding/presentation/providers/onboarding_provider.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AuthPage — unified Sign Up / Sign In screen
+// Default tab: Sign Up (initialIsSignUp: true)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class AuthPage extends ConsumerStatefulWidget {
+  final String? email;
+  final bool initialIsSignUp;
+
+  const AuthPage({
+    super.key,
+    this.email,
+    this.initialIsSignUp = true,
+  });
+
+  @override
+  ConsumerState<AuthPage> createState() => _AuthPageState();
+}
+
+class _AuthPageState extends ConsumerState<AuthPage>
+    with TickerProviderStateMixin {
+  // ── Form keys ────────────────────────────────────────────────────────────
+  final _signUpFormKey = GlobalKey<FormState>();
+  final _signInFormKey = GlobalKey<FormState>();
+
+  // ── Sign-up controllers ───────────────────────────────────────────────────
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  // ── Sign-in controllers ───────────────────────────────────────────────────
+  final _siEmailController = TextEditingController();
+  final _siPasswordController = TextEditingController();
+
+  // ── UI state ─────────────────────────────────────────────────────────────
+  bool _isSignUp = true;
+  bool _isLoading = false;
+
+  // ── Animation controllers ─────────────────────────────────────────────────
+  late final AnimationController _bgCtrl;
+  late final AnimationController _shakeCtrl;
+  late final AnimationController _entryCtrl;
+  late final Animation<double> _shakeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSignUp = widget.initialIsSignUp;
+
+    _bgCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat(reverse: true);
+
+    _shakeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(_shakeCtrl);
+
+    _entryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    if (widget.email != null && widget.email!.isNotEmpty) {
+      _emailController.text = widget.email!;
+      _siEmailController.text = widget.email!;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _entryCtrl.forward());
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    _siEmailController.dispose();
+    _siPasswordController.dispose();
+    _bgCtrl.dispose();
+    _shakeCtrl.dispose();
+    _entryCtrl.dispose();
+    super.dispose();
+  }
+
+  void _setTab(bool isSignUp) {
+    if (_isSignUp == isSignUp) return;
+    setState(() => _isSignUp = isSignUp);
+    _entryCtrl.forward(from: 0);
+  }
+
+  // ── Sign Up — Supabase logic untouched ────────────────────────────────────
+  Future<void> _handleSignUp() async {
+    if (!_signUpFormKey.currentState!.validate()) {
+      _shakeCtrl.forward(from: 0);
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            fullName: _nameController.text.trim(),
+          );
+
+      final userId = SupabaseService.currentUser?.id;
+      final pendingChild = ref.read(childNotifierProvider);
+      if (userId != null && pendingChild != null) {
+        final now = DateTime.now().toUtc().toIso8601String();
+        await SupabaseService.client.from('children').insert({
+          'parent_id': userId,
+          'name': pendingChild.name,
+          'date_of_birth': pendingChild.dateOfBirth.toUtc().toIso8601String(),
+          'gender': pendingChild.gender,
+          'age_group': pendingChild.ageGroup,
+          'relationship': pendingChild.relationship,
+          'created_at': now,
+          'updated_at': now,
+        });
+        // Do NOT clear child — questionnaire reads ageGroup from it
+      }
+      if (mounted) context.go('/child-profile');
+    } catch (e) {
+      if (mounted) {
+        _shakeCtrl.forward(from: 0);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ref.read(authProvider).error ?? e.toString()),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Sign In — Supabase logic untouched ────────────────────────────────────
+  Future<void> _signIn() async {
+    if (!_signInFormKey.currentState!.validate()) {
+      _shakeCtrl.forward(from: 0);
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signIn(
+            email: _siEmailController.text.trim(),
+            password: _siPasswordController.text,
+          );
+      if (mounted) context.go('/child-profile');
+    } catch (e) {
+      if (mounted) {
+        _shakeCtrl.forward(from: 0);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ref.read(authProvider).error ?? e.toString()),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Forgot Password — logic untouched ─────────────────────────────────────
+  Future<void> _forgotPassword() async {
+    final email = _siEmailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email above first')),
+      );
+      return;
+    }
+    try {
+      await ref.read(authProvider.notifier).resetPassword(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password reset email sent')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  // ── Google Sign-In handler — preserved ────────────────────────────────────
+  Future<void> _handleGoogleSignIn() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Google Sign-In coming soon')),
+    );
+  }
+
+  // ── Field stagger helper ──────────────────────────────────────────────────
+  Widget _fieldWrap(int i, Widget child) {
+    const stagger = 50.0 / 600.0;
+    const dur = 320.0 / 600.0;
+    final start = (i * stagger).clamp(0.0, 1.0);
+    final end = (start + dur).clamp(0.0, 1.0);
+    return AnimatedBuilder(
+      animation: _entryCtrl,
+      builder: (_, __) {
+        final t = CurvedAnimation(
+          parent: _entryCtrl,
+          curve: Interval(start, end, curve: Curves.easeOut),
+        ).value;
+        return Transform.translate(
+          offset: Offset(0, 18 * (1 - t)),
+          child: Opacity(opacity: t.clamp(0.0, 1.0), child: child),
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = ref.watch(activeColorSchemeProvider);
+
+    return Scaffold(
+      backgroundColor: scheme.background,
+      body: Stack(
+        children: [
+          // ── Animated gradient background ──────────────────────────────────
+          AnimatedBuilder(
+            animation: _bgCtrl,
+            builder: (_, __) {
+              final t = _bgCtrl.value;
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(scheme.background,
+                          scheme.primary.withValues(alpha: 0.12), t)!,
+                      Color.lerp(scheme.primary.withValues(alpha: 0.12),
+                          scheme.accent.withValues(alpha: 0.08), t)!,
+                      Color.lerp(scheme.accent.withValues(alpha: 0.08),
+                          scheme.background, 1 - t)!,
+                      scheme.background,
+                    ],
+                    stops: const [0.0, 0.35, 0.65, 1.0],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // ── Content ───────────────────────────────────────────────────────
+          SafeArea(
+            child: SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+              child: Column(
+                children: [
+                  _buildLogo(scheme),
+                  const SizedBox(height: 32),
+                  // Shake wrapper around the glass card
+                  AnimatedBuilder(
+                    animation: _shakeAnim,
+                    builder: (_, child) => Transform.translate(
+                      offset: Offset(
+                        6 * math.sin(_shakeAnim.value * math.pi * 5),
+                        0,
+                      ),
+                      child: child,
+                    ),
+                    child: _buildCard(scheme),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Logo + wordmark ────────────────────────────────────────────────────────
+  Widget _buildLogo(AppColorScheme scheme) {
+    return Column(
+      children: [
+        SizedBox(
+          width: 48,
+          height: 48,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              for (int i = 0; i < 6; i++)
+                Transform.translate(
+                  offset: Offset(
+                    12 * math.cos((i * 60 - 90) * math.pi / 180),
+                    12 * math.sin((i * 60 - 90) * math.pi / 180),
+                  ),
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.85),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: scheme.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Bloomora',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: scheme.textPrimary,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Glass card ─────────────────────────────────────────────────────────────
+  Widget _buildCard(AppColorScheme scheme) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: scheme.glassBase,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: scheme.glassBorder, width: 1.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Color.fromRGBO(0, 0, 0, 0.08),
+                blurRadius: 32,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              RepaintBoundary(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildTabControl(scheme),
+                    const SizedBox(height: 24),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      layoutBuilder: (currentChild, previousChildren) {
+                        return Stack(
+                          alignment: Alignment.topCenter,
+                          children: [
+                            ...previousChildren,
+                            if (currentChild != null) currentChild,
+                          ],
+                        );
+                      },
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.04, 0),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOut,
+                            )),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _isSignUp
+                          ? _buildSignUpFields(scheme, key: const ValueKey('signup'))
+                          : _buildSignInFields(scheme, key: const ValueKey('signin')),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              _buildDivider(scheme),
+              const SizedBox(height: 18),
+              _buildGoogleButton(scheme),
+              const SizedBox(height: 20),
+              _buildBottomLink(scheme),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Tab control ────────────────────────────────────────────────────────────
+  Widget _buildTabControl(AppColorScheme scheme) {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: scheme.textMuted.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Stack(
+        children: [
+          // Animated sliding pill
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeInOut,
+            alignment:
+                _isSignUp ? Alignment.centerLeft : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.30),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Labels
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _setTab(true),
+                  child: Center(
+                    child: Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _isSignUp ? Colors.white : scheme.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _setTab(false),
+                  child: Center(
+                    child: Text(
+                      'Sign In',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: !_isSignUp ? Colors.white : scheme.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Sign Up form ───────────────────────────────────────────────────────────
+  Widget _buildSignUpFields(AppColorScheme scheme, {Key? key}) {
+    return Form(
+      key: _signUpFormKey,
+      child: Column(
+        key: key,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _fieldWrap(0, GlassTextField(
+            hint: 'Full name',
+            controller: _nameController,
+            prefixIcon: Icons.person_outline_rounded,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Please enter your full name';
+              if (v.trim().length < 2) return 'Name must be at least 2 characters';
+              return null;
+            },
+          )),
+          const SizedBox(height: 14),
+          _fieldWrap(1, GlassTextField(
+            hint: 'Email address',
+            controller: _emailController,
+            prefixIcon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Please enter your email';
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
+          )),
+          const SizedBox(height: 14),
+          _fieldWrap(2, GlassTextField(
+            hint: 'Password',
+            controller: _passwordController,
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Please enter a password';
+              if (v.length < 6) return 'Password must be at least 6 characters';
+              return null;
+            },
+          )),
+          const SizedBox(height: 14),
+          _fieldWrap(3, GlassTextField(
+            hint: 'Confirm password',
+            controller: _confirmController,
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Please confirm your password';
+              if (v != _passwordController.text) return 'Passwords do not match';
+              return null;
+            },
+          )),
+          const SizedBox(height: 20),
+          _fieldWrap(4, _buildCTAButton(
+            scheme: scheme,
+            label: 'Create Account',
+            onTap: _isLoading ? null : _handleSignUp,
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ── Sign In form ───────────────────────────────────────────────────────────
+  Widget _buildSignInFields(AppColorScheme scheme, {Key? key}) {
+    return Form(
+      key: _signInFormKey,
+      child: Column(
+        key: key,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _fieldWrap(0, GlassTextField(
+            hint: 'Email address',
+            controller: _siEmailController,
+            prefixIcon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Please enter your email';
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
+                return 'Please enter a valid email';
+              }
+              return null;
+            },
+          )),
+          const SizedBox(height: 14),
+          _fieldWrap(1, GlassTextField(
+            hint: 'Password',
+            controller: _siPasswordController,
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Please enter your password';
+              if (v.length < 6) return 'Password must be at least 6 characters';
+              return null;
+            },
+          )),
+          const SizedBox(height: 8),
+          _fieldWrap(2, Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: _forgotPassword,
+              child: Text(
+                'Forgot Password?',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.primaryLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          )),
+          const SizedBox(height: 20),
+          _fieldWrap(3, _buildCTAButton(
+            scheme: scheme,
+            label: 'Sign In',
+            onTap: _isLoading ? null : _signIn,
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ── CTA button ─────────────────────────────────────────────────────────────
+  Widget _buildCTAButton({
+    required AppColorScheme scheme,
+    required String label,
+    required VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? scheme.primary.withValues(alpha: 0.5)
+              : scheme.primary,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: onTap == null
+              ? null
+              : [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.35),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+        ),
+        child: Center(
+          child: _isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  // ── Divider ────────────────────────────────────────────────────────────────
+  Widget _buildDivider(AppColorScheme scheme) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            color: scheme.textMuted.withValues(alpha: 0.25),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'or continue with',
+            style: TextStyle(
+              fontSize: 13,
+              color: scheme.textMuted,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: scheme.textMuted.withValues(alpha: 0.25),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Google button ──────────────────────────────────────────────────────────
+  Widget _buildGoogleButton(AppColorScheme scheme) {
+    return GestureDetector(
+      onTap: _handleGoogleSignIn,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: scheme.glassBase,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: scheme.glassBorder, width: 1.0),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'G',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4285F4),
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Continue with Google',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.textPrimary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Bottom link ────────────────────────────────────────────────────────────
+  Widget _buildBottomLink(AppColorScheme scheme) {
+    return GestureDetector(
+      onTap: () => _setTab(!_isSignUp),
+      child: Center(
+        child: RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: _isSignUp
+                    ? 'Already have an account? '
+                    : "Don't have an account? ",
+                style: TextStyle(fontSize: 13, color: scheme.textMuted),
+              ),
+              TextSpan(
+                text: _isSignUp ? 'Sign In' : 'Create one',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

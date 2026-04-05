@@ -8,11 +8,9 @@ class ChildModel {
   final String parentId;
   final String name;
   final DateTime dateOfBirth;
-  final String? birthTime;
   final String gender;
   final String ageGroup;
-  final List<String> existingDiagnoses;
-  final List<String> concerns;
+  final String? relationship;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,11 +19,9 @@ class ChildModel {
     required this.parentId,
     required this.name,
     required this.dateOfBirth,
-    this.birthTime,
     required this.gender,
     required this.ageGroup,
-    required this.existingDiagnoses,
-    required this.concerns,
+    this.relationship,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -40,11 +36,9 @@ class ChildModel {
     String? parentId,
     String? name,
     DateTime? dateOfBirth,
-    String? birthTime,
     String? gender,
     String? ageGroup,
-    List<String>? existingDiagnoses,
-    List<String>? concerns,
+    String? relationship,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -53,11 +47,9 @@ class ChildModel {
       parentId: parentId ?? this.parentId,
       name: name ?? this.name,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
-      birthTime: birthTime ?? this.birthTime,
       gender: gender ?? this.gender,
       ageGroup: ageGroup ?? this.ageGroup,
-      existingDiagnoses: existingDiagnoses ?? this.existingDiagnoses,
-      concerns: concerns ?? this.concerns,
+      relationship: relationship ?? this.relationship,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -75,6 +67,6 @@ class ChildModel {
     if (months >= 24 && months < 36) return '2-3';
     if (months >= 36 && months < 48) return '3-4';
     if (months >= 48 && months < 60) return '4-5';
-    return '1-2'; // Default fallback
+    return '1-2';
   }
 }

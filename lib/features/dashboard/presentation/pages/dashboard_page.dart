@@ -744,7 +744,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1E3A8A).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -763,26 +763,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     const Text(
                       'Cognitive Skills',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1E3A8A),
                         fontFamily: 'SF Pro Text',
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     const Text(
                       'Memory games and puzzles',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: Color(0xFF6B7280),
                         fontFamily: 'SF Pro Text',
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         const Icon(

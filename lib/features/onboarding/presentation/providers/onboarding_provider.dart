@@ -42,7 +42,7 @@ class ParentNotifier extends _$ParentNotifier {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ChildNotifier extends _$ChildNotifier {
   @override
   ChildModel? build() {

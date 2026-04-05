@@ -6,7 +6,7 @@ part of 'questionnaire_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$questionsHash() => r'aaaeb4be6a11a71200396895775610635468d30e';
+String _$questionsHash() => r'460264c2128f5be0a998f1529e0ccd5e23319851';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -156,7 +156,7 @@ class _QuestionsProviderElement
 }
 
 String _$questionnaireNotifierHash() =>
-    r'06a2449e228e180f676fbd9af4e8dd3943fd109e';
+    r'f7e8f8d128f1a67a54e3dcc8a6f6a719f707e929';
 
 /// See also [QuestionnaireNotifier].
 @ProviderFor(QuestionnaireNotifier)

@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/constants/app_constants.dart';
 import 'core/api/api_client.dart';
 import 'core/services/supabase_service.dart';
@@ -41,13 +42,16 @@ class BloomoraApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    // CHECK 3: initialize keepAlive provider on startup so SharedPreferences
+    // persistence loads before any screen renders.
+    ref.read(themeNotifierProvider);
+    // CHECK 2: wire active color scheme to MaterialApp theme.
+    final scheme = ref.watch(activeColorSchemeProvider);
 
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(context),
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      theme: buildTheme(scheme),
       routerConfig: router,
     );
   }

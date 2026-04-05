@@ -1,7 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -13,42 +17,31 @@ class SplashPage extends ConsumerStatefulWidget {
 
 class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _setupAnimations();
-    _navigateToNextScreen();
-  }
-
-  void _setupAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-    ));
+    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
-    ));
+    _scale = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
 
-    _animationController.forward();
+    _controller.forward();
+    _navigateToNextScreen();
   }
 
+  // ── Navigation logic — untouched ──────────────────────────────────────────
   void _navigateToNextScreen() {
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
@@ -59,116 +52,121 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = ref.watch(activeColorSchemeProvider);
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6C63FF),
-              Color(0xFF4ECDC4),
-            ],
-          ),
-        ),
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return Center(
+      backgroundColor: scheme.background,
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => FadeTransition(
+          opacity: _fade,
+          child: Transform.scale(
+            scale: _scale.value,
+            child: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // App Logo
-                  Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.2),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          size: 60,
-                          color: Colors.white,
-                        ),
-                      ),
+                  // ── Logo ─────────────────────────────────────────────────
+                  _BloomLogo(
+                    primaryColor: scheme.primary,
+                    accentColor: scheme.accent,
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // ── App name ──────────────────────────────────────────────
+                  Text(
+                    AppConstants.appName,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.textPrimary,
+                      letterSpacing: 1.2,
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 8),
 
-                  // App Name
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Text(
-                      AppConstants.appName,
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Tagline
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Text(
-                      'Empowering Every Child\'s Journey',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 60),
-
-                  // Loading Indicator
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: const SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        strokeWidth: 3,
-                      ),
+                  // ── Tagline ───────────────────────────────────────────────
+                  Text(
+                    'Growing Together',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: scheme.textMuted,
+                      letterSpacing: 0.8,
                     ),
                   ),
                 ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
+// ─── Bloom logo ───────────────────────────────────────────────────────────────
+
+/// 6-petal flower — 6 circles arranged at 60° intervals around a center dot.
+/// Total bounding box: 72 × 72 px.
+class _BloomLogo extends StatelessWidget {
+  final Color primaryColor;
+  final Color accentColor;
+
+  const _BloomLogo({
+    required this.primaryColor,
+    required this.accentColor,
+  });
+
+  static const double _size       = 72.0;
+  static const double _petalSize  = 22.0;
+  static const double _centerSize = 18.0;
+  static const double _orbitR     = 18.0; // center-to-petal distance
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _size,
+      height: _size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 6 petals at 60° steps (starting from top, i.e. -90°)
+          for (int i = 0; i < 6; i++)
+            Transform.translate(
+              offset: Offset(
+                _orbitR * math.cos((i * 60 - 90) * math.pi / 180),
+                _orbitR * math.sin((i * 60 - 90) * math.pi / 180),
+              ),
+              child: Container(
+                width: _petalSize,
+                height: _petalSize,
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.85),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+
+          // Center accent dot
+          Container(
+            width: _centerSize,
+            height: _centerSize,
+            decoration: BoxDecoration(
+              color: accentColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/glassmorphism_app_bar.dart';
-import '../widgets/domain_selection_card.dart';
-import '../providers/priority_selection_provider.dart';
+import '../../../../core/theme/theme_provider.dart';
 
 class PrioritySelectionPage extends ConsumerStatefulWidget {
   const PrioritySelectionPage({super.key});
@@ -17,223 +14,376 @@ class PrioritySelectionPage extends ConsumerStatefulWidget {
 }
 
 class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
-  final List<String> _selectedPriorities = [];
+
+  // ── Placeholder scores ─────────────────────────────────────────────────────
+  final Map<String, double> _domainScores = {
+    'Attention & Play': 0.72,
+    'Cognitive': 0.45,
+    'Daily Living': 0.60,
+    'Fine Motor': 0.38,
+    'Gross Motor': 0.78,
+    'Sensory': 0.30,
+    'Social & Emotional': 0.55,
+    'Communication': 0.42,
+  };
+
+  // ── Domain icons ───────────────────────────────────────────────────────────
+  static const Map<String, IconData> _domainIcons = {
+    'Attention & Play':   Icons.sports_esports_outlined,
+    'Cognitive':          Icons.psychology_outlined,
+    'Daily Living':       Icons.home_outlined,
+    'Fine Motor':         Icons.back_hand_outlined,
+    'Gross Motor':        Icons.directions_run_outlined,
+    'Sensory':            Icons.sensors_outlined,
+    'Social & Emotional': Icons.favorite_outline,
+    'Communication':      Icons.chat_bubble_outline,
+  };
+
+  // ── Selection state ────────────────────────────────────────────────────────
+  List<String> _selectedDomains = [];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LIFECYCLE
+  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    // Initialize with empty priorities
+
+    // Pre-select the 3 lowest-scoring domains
+    final sorted = _domainScores.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    _selectedDomains = sorted.take(3).map((e) => e.key).toList();
   }
 
-  void _togglePriority(String domain) {
-    setState(() {
-      if (_selectedPriorities.contains(domain)) {
-        _selectedPriorities.remove(domain);
-      } else if (_selectedPriorities.length < 3) {
-        _selectedPriorities.add(domain);
-      } else {
-        // Replace the first selected priority
-        _selectedPriorities.removeAt(0);
-        _selectedPriorities.add(domain);
-      }
-    });
+  // ─────────────────────────────────────────────────────────────────────────
+  // HELPERS (untouched)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  String _skillLevelLabel(double score) {
+    if (score < 0.40) return 'Needs Support';
+    if (score < 0.70) return 'Developing';
+    return 'On Track';
   }
 
-  Future<void> _handleContinue() async {
-    if (_selectedPriorities.length != 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select exactly 3 priorities'),
-          backgroundColor: AppColors.error,
-        ),
+  Color _skillLevelColor(double score) {
+    if (score < 0.40) return const Color(0xFFEF4444);
+    if (score < 0.70) return const Color(0xFFF59E0B);
+    return const Color(0xFF10B981);
+  }
+
+  void _onTapDomain(String domainName) {
+    final isSelected = _selectedDomains.contains(domainName);
+
+    if (isSelected) {
+      // Deselecting — auto-select 4th weakest not already selected
+      _selectedDomains.remove(domainName);
+      final sorted = _domainScores.entries.toList()
+        ..sort((a, b) => a.value.compareTo(b.value));
+      final next = sorted.firstWhere(
+        (e) => !_selectedDomains.contains(e.key),
+        orElse: () => sorted.first,
       );
-      return;
+      _selectedDomains.add(next.key);
+    } else if (_selectedDomains.length < 3) {
+      _selectedDomains.add(domainName);
+    } else {
+      // Swap: remove last, add tapped
+      _selectedDomains.removeAt(_selectedDomains.length - 1);
+      _selectedDomains.add(domainName);
     }
 
-    try {
-      // Save selected priorities
-      ref
-          .read(prioritySelectionNotifierProvider.notifier)
-          .setPriorities(_selectedPriorities);
-
-      // Navigate to loading analysis page
-      if (mounted) {
-        context.go('/loading-analysis');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
+    setState(() {});
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final scheme = ref.watch(activeColorSchemeProvider);
+
+    final domains = _domainScores.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: GlassmorphismAppBar(
-        title: 'Select Priorities',
-        showAppName: false,
-        leading: GestureDetector(
-          onTap: () => context.go('/questionnaire'),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.5),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_back_ios,
-                color: Color(0xFF000000),
-                size: 20,
-              ),
-            ),
-          ),
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8FAFC),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header
-                Text(
-                  'Choose Your Top 3 Priorities',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF000000),
-                    fontFamily: 'SF Pro Display',
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Select the developmental areas you\'d like to focus on first',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFF6B7280),
-                    fontFamily: 'SF Pro Text',
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 24),
-
-                // Selection Counter
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E3A8A).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF1E3A8A).withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: const Color(0xFF1E3A8A),
-                        size: 20,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── App bar ──────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.go('/loading-analysis'),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: Colors.black87,
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Selected ${_selectedPriorities.length} of 3 priorities',
-                          style: const TextStyle(
-                            color: Color(0xFF1E3A8A),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            fontFamily: 'SF Pro Text',
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Title + counter ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Choose Your Focus Areas',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Select 3 domains to focus on. We\'ll personalize '
+                      'your daily activities around these areas.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade500,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_rounded,
+                              size: 13, color: scheme.primary),
+                          const SizedBox(width: 5),
+                          Text(
+                            '${_selectedDomains.length} of 3 selected',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Domain grid ──────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.88,
+                  ),
+                  itemCount: domains.length,
+                  itemBuilder: (context, index) {
+                    final entry = domains[index];
+                    return _buildDomainCard(
+                        scheme, entry.key, entry.value);
+                  },
+                ),
+              ),
+
+              // ── Selected chips + CTA ─────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: _selectedDomains
+                          .map((domain) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: scheme.primary,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  domain,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      height: 54,
+                      margin: const EdgeInsets.only(bottom: 32),
+                      decoration: BoxDecoration(
+                        color: _selectedDomains.length == 3
+                            ? scheme.primary
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(27),
+                        boxShadow: _selectedDomains.length == 3
+                            ? [
+                                BoxShadow(
+                                  color:
+                                      scheme.primary.withValues(alpha: 0.30),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ]
+                            : [],
+                      ),
+                      child: TextButton(
+                        onPressed: _selectedDomains.length == 3
+                            ? () => context.go('/dashboard')
+                            : null,
+                        child: const Text(
+                          'Start My Plan →',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Domain Selection Cards
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: AppConstants.domains.length,
-                    itemBuilder: (context, index) {
-                      final domain = AppConstants.domains[index];
-                      final isSelected = _selectedPriorities.contains(domain);
-                      final selectionOrder =
-                          _selectedPriorities.indexOf(domain) + 1;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: DomainSelectionCard(
-                          domain: domain,
-                          description:
-                              AppConstants.domainDescriptions[domain] ?? '',
-                          isSelected: isSelected,
-                          selectionOrder: isSelected ? selectionOrder : null,
-                          onTap: () => _togglePriority(domain),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Continue Button
-                Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: _selectedPriorities.length == 3
-                        ? const Color(0xFF1E3A8A)
-                        : const Color(0xFFD1D5DB),
-                  ),
-                  child: TextButton(
-                    onPressed: _selectedPriorities.length == 3
-                        ? _handleContinue
-                        : null,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
                     ),
-                    child: const Text(
-                      'Continue to Analysis',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'SF Pro Text',
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DOMAIN CARD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildDomainCard(
+      AppColorScheme scheme, String domainName, double score) {
+    final isSelected = _selectedDomains.contains(domainName);
+    final icon = _domainIcons[domainName] ?? Icons.circle_outlined;
+
+    return GestureDetector(
+      onTap: () => _onTapDomain(domainName),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFEEF2FF) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? scheme.primary.withValues(alpha: 0.25)
+                : Colors.grey.shade200,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? scheme.primary.withValues(alpha: 0.12)
+                      : Colors.grey.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected ? scheme.primary : Colors.grey.shade400,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                domainName,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _skillLevelColor(score).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  _skillLevelLabel(score),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: _skillLevelColor(score),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: isSelected ? scheme.primary : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color:
+                        isSelected ? scheme.primary : Colors.grey.shade300,
+                    width: 1.5,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check_rounded,
+                        size: 13, color: Colors.white)
+                    : null,
+              ),
+            ],
           ),
         ),
       ),

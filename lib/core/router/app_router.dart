@@ -3,11 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/splash/presentation/pages/splash_page.dart';
-import '../../features/intro/presentation/pages/intro_page.dart';
-import '../../features/auth/presentation/pages/email_verification_page.dart';
-import '../../features/auth/presentation/pages/parent_signin_page.dart';
-import '../../features/onboarding/presentation/pages/parent_signup_page.dart';
-import '../../features/onboarding/presentation/pages/child_profile_page_new.dart';
+import '../../features/onboarding/presentation/pages/intro_page.dart';
+import '../../features/auth/presentation/pages/auth_page.dart';
+import '../../features/onboarding/presentation/pages/child_profile_page.dart';
 import '../../features/assessment/presentation/pages/questionnaire_page.dart';
 import '../../features/assessment/presentation/pages/priority_selection_page.dart';
 import '../../features/assessment/presentation/pages/loading_analysis_page.dart';
@@ -18,9 +16,14 @@ import '../../features/progress/presentation/pages/progress_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/onboarding/presentation/providers/onboarding_provider.dart';
 
-// Routes that require authentication
+// ── Route sets ────────────────────────────────────────────────────────────────
+
+// Requires authentication. Unauthenticated users are sent to /parent-signup.
+// /child-profile is protected: auth must come before profile entry.
 const _protectedRoutes = {
+  '/child-profile',
   '/dashboard',
   '/questionnaire',
   '/priority-selection',
@@ -30,12 +33,17 @@ const _protectedRoutes = {
   '/profile',
 };
 
-// Routes only accessible when unauthenticated
+// Only accessible when NOT authenticated.
+// Authenticated users landing here are sent to /dashboard.
+// NOTE: /parent-signup is included because after the new flow the router can
+// safely redirect authenticated users away from it without the flash problem
+// (AuthPage does its own explicit context.go after signup before the guard fires).
 const _authOnlyRoutes = {
-  '/email-verification',
-  '/parent-signin',
   '/parent-signup',
+  '/parent-signin',
 };
+
+// ── Router ────────────────────────────────────────────────────────────────────
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -45,26 +53,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authProvider);
       final location = state.matchedLocation;
 
-      // Don't redirect while auth state is still resolving
+      // Wait for auth state to resolve before redirecting
       if (authState.isUnknown) return null;
 
       final isAuthenticated = authState.isAuthenticated;
-      final isProtected = _protectedRoutes.any(
-        (r) => location.startsWith(r),
-      );
-      final isAuthOnly = _authOnlyRoutes.any(
-        (r) => location.startsWith(r),
-      );
 
-      // Unauthenticated user hitting a protected route → email verification
-      if (!isAuthenticated && isProtected) return '/email-verification';
+      // /email-verification is no longer a blocking step in the main flow.
+      // Redirect it to the appropriate auth tab so old deep-links still work.
+      if (location.startsWith('/email-verification')) {
+        return isAuthenticated ? '/dashboard' : '/parent-signin';
+      }
 
-      // Authenticated user hitting an auth-only route → dashboard
-      if (isAuthenticated && isAuthOnly) return '/dashboard';
+      final isProtected = _protectedRoutes.any((r) => location.startsWith(r));
+      final isAuthOnly  = _authOnlyRoutes.any((r) => location.startsWith(r));
+
+      // Unauthenticated user hitting a protected route → Auth screen (sign-up tab)
+      if (!isAuthenticated && isProtected) return '/parent-signup';
+
+      // Authenticated user hitting an auth-only route:
+      // - If they have already completed child profile setup → redirect to dashboard.
+      // - If not (e.g. going back from /child-profile before saving) → let them
+      //   through so the back button on child_profile_page works correctly.
+      if (isAuthenticated && isAuthOnly) {
+        final hasChildProfile = ref.read(childNotifierProvider) != null;
+        return hasChildProfile ? '/dashboard' : null;
+      }
 
       return null;
     },
     routes: [
+      // ── Pre-auth flow ───────────────────────────────────────────────────────
       GoRoute(
         path: '/splash',
         name: 'splash',
@@ -75,32 +93,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'intro',
         builder: (context, state) => const IntroPage(),
       ),
+
+      // ── Auth ────────────────────────────────────────────────────────────────
+      // Both routes open AuthPage; initialIsSignUp controls which tab is active.
       GoRoute(
-        path: '/email-verification',
-        name: 'email-verification',
-        builder: (context, state) => const EmailVerificationPage(),
+        path: '/parent-signup',
+        name: 'parent-signup',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'];
+          return AuthPage(email: email, initialIsSignUp: true);
+        },
       ),
       GoRoute(
         path: '/parent-signin',
         name: 'parent-signin',
         builder: (context, state) {
           final email = state.uri.queryParameters['email'];
-          return ParentSigninPage(email: email);
+          return AuthPage(email: email, initialIsSignUp: false);
         },
       ),
-      GoRoute(
-        path: '/parent-signup',
-        name: 'parent-signup',
-        builder: (context, state) {
-          final email = state.uri.queryParameters['email'];
-          return ParentSignupPage(email: email);
-        },
-      ),
+
+      // ── Post-auth flow ──────────────────────────────────────────────────────
       GoRoute(
         path: '/child-profile',
         name: 'child-profile',
         builder: (context, state) => const ChildProfilePageNew(),
       ),
+
+      // ── Assessment ──────────────────────────────────────────────────────────
       GoRoute(
         path: '/questionnaire',
         name: 'questionnaire',
@@ -116,6 +136,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'loading-analysis',
         builder: (context, state) => const LoadingAnalysisPage(),
       ),
+
+      // ── Authenticated app ───────────────────────────────────────────────────
       GoRoute(
         path: '/dashboard',
         name: 'dashboard',
