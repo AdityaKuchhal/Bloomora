@@ -125,10 +125,23 @@ class _AuthPageState extends ConsumerState<AuthPage>
           );
 
       if (mounted) {
-        context.go(
-          '/verify-email?email=${Uri.encodeComponent(
-            _emailController.text.trim())}',
-        );
+        // Check if user is immediately authenticated
+        // (email confirmation is disabled in Supabase)
+        final user = SupabaseService.currentUser;
+        if (user != null && user.emailConfirmedAt != null) {
+          // User is confirmed — go through smart routing
+          final route = await NavigationService.getPostLoginRoute(
+            onGenderDetected: (gender) =>
+                ref.read(themeNotifierProvider.notifier).setGender(gender),
+          );
+          if (mounted) context.go(route); // ignore: use_build_context_synchronously
+        } else {
+          // User needs email confirmation
+          context.go(
+            '/verify-email?email=${Uri.encodeComponent(
+              _emailController.text.trim())}',
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

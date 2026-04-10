@@ -210,6 +210,9 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
   }
 
   Future<void> _startAnalysis() async {
+    // Sync comm slots to provider before navigating
+    ref.read(questionnaireNotifierProvider.notifier).syncCommSlots(_commSlots);
+
     final regularQuestions = QuestionBank.domainOrder
         .take(7)
         .expand((d) => QuestionBank.regularQuestions(_ageGroup, d))
@@ -219,7 +222,9 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
             regularQuestions: regularQuestions,
             commSlots: _commSlots,
           );
-      if (mounted) context.go('/loading-analysis');
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close dialog
+      context.go('/loading-analysis'); // ignore: use_build_context_synchronously
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

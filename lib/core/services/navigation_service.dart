@@ -35,7 +35,9 @@ class NavigationService {
           .from('assessments')
           .select()
           .eq('child_id', childId)
-          .eq('status', 'completed')
+          .not('completed_at', 'is', null)
+          .order('created_at', ascending: false)
+          .limit(1)
           .maybeSingle();
 
       // No completed assessment
@@ -46,14 +48,17 @@ class NavigationService {
       // STEP 4 — Check if priority selection is done
       // Table may not exist yet — fall through to dashboard on any error
       try {
-        final priorityResponse = await SupabaseService.client
-            .from('priority_selections')
-            .select()
+        // Check if priority was saved via domain_results count
+        // We'll add a proper priority_selections table later
+        // For now: if assessment exists and has domain_results → go to dashboard
+        final domainResultsResponse = await SupabaseService.client
+            .from('domain_results')
+            .select('id')
             .eq('assessment_id', assessmentId)
+            .limit(1)
             .maybeSingle();
 
-        if (priorityResponse == null) return '/priority-selection';
-
+        if (domainResultsResponse == null) return '/priority-selection';
         return '/dashboard';
       } catch (_) {
         return '/dashboard';
