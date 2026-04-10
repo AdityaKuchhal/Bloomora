@@ -180,7 +180,34 @@ SELECT
     dd.id,
     'Can your child pick up small objects with thumb and forefinger?',
     1.0
-FROM age_groups ag, development_domains dd 
+FROM age_groups ag, development_domains dd
 WHERE ag.name = '1-2 years' AND dd.name = 'Fine Motor Skills';
+
+-- ============================================================
+-- AUTH TRIGGER: Auto-create parent profile on signup
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.parents (id, email, name, created_at, updated_at)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- Add more sample questions as needed...

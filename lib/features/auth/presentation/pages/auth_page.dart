@@ -15,7 +15,6 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../providers/auth_provider.dart';
-import '../../../onboarding/presentation/providers/onboarding_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AuthPage — unified Sign Up / Sign In screen
@@ -125,22 +124,6 @@ class _AuthPageState extends ConsumerState<AuthPage>
             fullName: _nameController.text.trim(),
           );
 
-      final userId = SupabaseService.currentUser?.id;
-      final pendingChild = ref.read(childNotifierProvider);
-      if (userId != null && pendingChild != null) {
-        final now = DateTime.now().toUtc().toIso8601String();
-        await SupabaseService.client.from('children').insert({
-          'parent_id': userId,
-          'name': pendingChild.name,
-          'date_of_birth': pendingChild.dateOfBirth.toUtc().toIso8601String(),
-          'gender': pendingChild.gender,
-          'age_group': pendingChild.ageGroup,
-          'relationship': pendingChild.relationship,
-          'created_at': now,
-          'updated_at': now,
-        });
-        // Do NOT clear child — questionnaire reads ageGroup from it
-      }
       if (mounted) {
         context.go(
           '/verify-email?email=${Uri.encodeComponent(
