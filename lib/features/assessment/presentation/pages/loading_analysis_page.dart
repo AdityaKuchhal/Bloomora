@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../onboarding/presentation/providers/onboarding_provider.dart';
+import '../../data/question_bank.dart';
+import '../providers/questionnaire_provider.dart';
 
 class LoadingAnalysisPage extends ConsumerStatefulWidget {
   const LoadingAnalysisPage({super.key});
@@ -121,6 +124,36 @@ class _LoadingAnalysisPageState extends ConsumerState<LoadingAnalysisPage>
         });
       }
     });
+
+    // Trigger assessment save in background
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveAssessmentData();
+    });
+  }
+
+  Future<void> _saveAssessmentData() async {
+    try {
+      final child = ref.read(childNotifierProvider);
+      if (child == null) return;
+
+      final ageGroup = child.ageGroup;
+      final regularQuestions = QuestionBank.domainOrder
+          .take(7)
+          .expand((d) => QuestionBank.regularQuestions(ageGroup, d))
+          .toList();
+
+      final commSlots = ref.read(questionnaireNotifierProvider).commSlots;
+
+      await ref
+          .read(questionnaireNotifierProvider.notifier)
+          .saveAssessment(
+            regularQuestions: regularQuestions,
+            commSlots: commSlots,
+          );
+    } catch (e) {
+      // Silent fail — don't interrupt the UX
+      debugPrint('Assessment save error: $e');
+    }
   }
 
   @override

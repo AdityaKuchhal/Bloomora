@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../data/question_bank.dart';
 
 class PrioritySelectionPage extends ConsumerStatefulWidget {
   const PrioritySelectionPage({super.key});
@@ -15,17 +17,9 @@ class PrioritySelectionPage extends ConsumerStatefulWidget {
 
 class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
 
-  // ── Placeholder scores ─────────────────────────────────────────────────────
-  final Map<String, double> _domainScores = {
-    'Attention & Play': 0.72,
-    'Cognitive': 0.45,
-    'Daily Living': 0.60,
-    'Fine Motor': 0.38,
-    'Gross Motor': 0.78,
-    'Sensory': 0.30,
-    'Social & Emotional': 0.55,
-    'Communication': 0.42,
-  };
+  // ── Domain scores (loaded from Supabase) ──────────────────────────────────
+  Map<String, double> _domainScores = {};
+  bool _isLoading = true;
 
   // ── Domain icons ───────────────────────────────────────────────────────────
   static const Map<String, IconData> _domainIcons = {
@@ -49,11 +43,67 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
   @override
   void initState() {
     super.initState();
+    _loadDomainScores();
+  }
 
+  void _initializeSelections() {
     // Pre-select the 3 lowest-scoring domains
     final sorted = _domainScores.entries.toList()
       ..sort((a, b) => a.value.compareTo(b.value));
     _selectedDomains = sorted.take(3).map((e) => e.key).toList();
+  }
+
+  Future<void> _loadDomainScores() async {
+    try {
+      final userId = SupabaseService.currentUser?.id;
+      if (userId == null) return;
+
+      // Get child
+      final childResponse = await SupabaseService.client
+          .from('children')
+          .select('id')
+          .eq('parent_id', userId)
+          .single();
+      final childId = childResponse['id'] as String;
+
+      // Get latest completed assessment
+      final assessmentResponse = await SupabaseService.client
+          .from('assessments')
+          .select('id')
+          .eq('child_id', childId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .single();
+      final assessmentId = assessmentResponse['id'] as String;
+
+      // Get domain results
+      final domainResults = await SupabaseService.client
+          .from('domain_results')
+          .select('domain, percentage')
+          .eq('assessment_id', assessmentId);
+
+      final scores = <String, double>{};
+      for (final row in domainResults) {
+        final domain = row['domain'] as String;
+        final percentage = (row['percentage'] as num).toDouble();
+        scores[domain] = percentage / 100.0;
+      }
+
+      setState(() {
+        _domainScores = scores;
+        _isLoading = false;
+        _initializeSelections();
+      });
+    } catch (e) {
+      // Fallback to even scores if DB fails
+      setState(() {
+        _domainScores = {
+          for (final domain in QuestionBank.domainOrder) domain: 0.5,
+        };
+        _isLoading = false;
+        _initializeSelections();
+      });
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -104,8 +154,10 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
   Widget build(BuildContext context) {
     final scheme = ref.watch(activeColorSchemeProvider);
 
-    final domains = _domainScores.entries.toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
+    final domains = _isLoading
+        ? <MapEntry<String, double>>[]
+        : (_domainScores.entries.toList()
+          ..sort((a, b) => a.value.compareTo(b.value)));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -193,26 +245,33 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
               ),
 
               // ── Domain grid ──────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.88,
+              if (_isLoading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 64),
+                  child: Center(
+                    child: CircularProgressIndicator(color: scheme.primary),
                   ),
-                  itemCount: domains.length,
-                  itemBuilder: (context, index) {
-                    final entry = domains[index];
-                    return _buildDomainCard(
-                        scheme, entry.key, entry.value);
-                  },
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.88,
+                    ),
+                    itemCount: domains.length,
+                    itemBuilder: (context, index) {
+                      final entry = domains[index];
+                      return _buildDomainCard(scheme, entry.key, entry.value);
+                    },
+                  ),
                 ),
-              ),
 
               // ── Selected chips + CTA ─────────────────────────────────────
               Padding(
