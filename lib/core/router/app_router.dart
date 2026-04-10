@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/onboarding/presentation/pages/intro_page.dart';
 import '../../features/auth/presentation/pages/auth_page.dart';
+import '../../features/auth/presentation/pages/email_verification_page.dart';
 import '../../features/onboarding/presentation/pages/child_profile_page.dart';
 import '../../features/assessment/presentation/pages/questionnaire_page.dart';
 import '../../features/assessment/presentation/pages/priority_selection_page.dart';
@@ -15,8 +16,8 @@ import '../../features/activities/presentation/pages/activity_completion_page.da
 import '../../features/progress/presentation/pages/progress_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
+import '../../core/services/navigation_service.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
-import '../../features/onboarding/presentation/providers/onboarding_provider.dart';
 
 // ── Route sets ────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ const _protectedRoutes = {
 const _authOnlyRoutes = {
   '/parent-signup',
   '/parent-signin',
+  '/verify-email',
 };
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -49,34 +51,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: _AuthRefreshNotifier(ref),
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final authState = ref.read(authProvider);
       final location = state.matchedLocation;
 
-      // Wait for auth state to resolve before redirecting
       if (authState.isUnknown) return null;
 
       final isAuthenticated = authState.isAuthenticated;
-
-      // /email-verification is no longer a blocking step in the main flow.
-      // Redirect it to the appropriate auth tab so old deep-links still work.
-      if (location.startsWith('/email-verification')) {
-        return isAuthenticated ? '/dashboard' : '/parent-signin';
-      }
-
       final isProtected = _protectedRoutes.any((r) => location.startsWith(r));
       final isAuthOnly  = _authOnlyRoutes.any((r) => location.startsWith(r));
 
-      // Unauthenticated user hitting a protected route → Auth screen (sign-up tab)
+      // Unauthenticated → auth screen
       if (!isAuthenticated && isProtected) return '/parent-signup';
 
-      // Authenticated user hitting an auth-only route:
-      // - If they have already completed child profile setup → redirect to dashboard.
-      // - If not (e.g. going back from /child-profile before saving) → let them
-      //   through so the back button on child_profile_page works correctly.
+      // Authenticated hitting auth-only route
       if (isAuthenticated && isAuthOnly) {
-        final hasChildProfile = ref.read(childNotifierProvider) != null;
-        return hasChildProfile ? '/dashboard' : null;
+        // Let /verify-email through always
+        if (location.startsWith('/verify-email')) return null;
+        return null; // NavigationService handles routing from auth page
+      }
+
+      // Authenticated hitting splash or intro → smart route
+      if (isAuthenticated &&
+          (location == '/splash' || location == '/intro')) {
+        return await NavigationService.getPostLoginRoute();
       }
 
       return null;
@@ -110,6 +108,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final email = state.uri.queryParameters['email'];
           return AuthPage(email: email, initialIsSignUp: false);
+        },
+      ),
+      GoRoute(
+        path: '/verify-email',
+        name: 'verify-email',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return EmailVerificationPage(email: email);
         },
       ),
 

@@ -8,6 +8,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../../core/config/app_config.dart';
+import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../providers/auth_provider.dart';
 import '../../../onboarding/presentation/providers/onboarding_provider.dart';
@@ -136,7 +141,12 @@ class _AuthPageState extends ConsumerState<AuthPage>
         });
         // Do NOT clear child — questionnaire reads ageGroup from it
       }
-      if (mounted) context.go('/child-profile');
+      if (mounted) {
+        context.go(
+          '/verify-email?email=${Uri.encodeComponent(
+            _emailController.text.trim())}',
+        );
+      }
     } catch (e) {
       if (mounted) {
         _shakeCtrl.forward(from: 0);
@@ -164,7 +174,12 @@ class _AuthPageState extends ConsumerState<AuthPage>
             email: _siEmailController.text.trim(),
             password: _siPasswordController.text,
           );
-      if (mounted) context.go('/child-profile');
+      if (!mounted) return;
+      final route = await NavigationService.getPostLoginRoute(
+        onGenderDetected: (gender) =>
+            ref.read(themeNotifierProvider.notifier).setGender(gender),
+      );
+      if (mounted) context.go(route);
     } catch (e) {
       if (mounted) {
         _shakeCtrl.forward(from: 0);
@@ -203,10 +218,65 @@ class _AuthPageState extends ConsumerState<AuthPage>
     }
   }
 
-  // ── Google Sign-In handler — preserved ────────────────────────────────────
+  // ── Google Sign-In handler ────────────────────────────────────────────────
   Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId: AppConfig.googleIosClientId,
+        serverClientId: AppConfig.googleWebClientId,
+        scopes: ['email', 'profile'],
+      );
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User cancelled
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      await SupabaseService.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: googleAuth.idToken!,
+        accessToken: googleAuth.accessToken,
+      );
+
+      if (!mounted) return;
+      final route = await NavigationService.getPostLoginRoute(
+        onGenderDetected: (gender) =>
+            ref.read(themeNotifierProvider.notifier).setGender(gender),
+      );
+      if (mounted) context.go(route);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Google Sign-In failed. Please try again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Apple Sign-In handler ─────────────────────────────────────────────────
+  Future<void> _handleAppleSignIn() async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Google Sign-In coming soon')),
+      SnackBar(
+        content: const Text('Apple Sign-In coming soon'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+      ),
     );
   }
 
@@ -418,6 +488,8 @@ class _AuthPageState extends ConsumerState<AuthPage>
               _buildDivider(scheme),
               const SizedBox(height: 18),
               _buildGoogleButton(scheme),
+              const SizedBox(height: 12),
+              _buildAppleButton(scheme),
               const SizedBox(height: 20),
               _buildBottomLink(scheme),
             ],
@@ -742,6 +814,54 @@ class _AuthPageState extends ConsumerState<AuthPage>
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: scheme.textPrimary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Apple button ───────────────────────────────────────────────────────────
+  Widget _buildAppleButton(AppColorScheme scheme) {
+    return GestureDetector(
+      onTap: _handleAppleSignIn,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: scheme.isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.black.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: scheme.isDark
+                    ? Colors.white.withValues(alpha: 0.20)
+                    : Colors.black.withValues(alpha: 0.12),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.apple_rounded,
+                  size: 22,
+                  color: scheme.isDark ? Colors.white : Colors.black,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Continue with Apple',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.isDark ? Colors.white : Colors.black,
                     letterSpacing: 0.2,
                   ),
                 ),
