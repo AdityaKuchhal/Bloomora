@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+import 'app_radius.dart';
+import 'app_typography.dart';
 
 /// Builds a [ThemeData] from a resolved [AppColorScheme].
 ///
@@ -15,9 +16,9 @@ ThemeData buildTheme(AppColorScheme scheme) {
     brightness:       scheme.isDark ? Brightness.dark : Brightness.light,
     primary:          scheme.primary,
     onPrimary:        Colors.white,
-    primaryContainer: scheme.primaryLight,
+    primaryContainer: scheme.accent,
     onPrimaryContainer: scheme.textPrimary,
-    secondary:        scheme.accent,
+    secondary:        scheme.secondary,
     onSecondary:      Colors.white,
     secondaryContainer: scheme.accent.withValues(alpha: 0.2),
     onSecondaryContainer: scheme.textPrimary,
@@ -27,67 +28,25 @@ ThemeData buildTheme(AppColorScheme scheme) {
     onError:          Colors.white,
   );
 
-  final textTheme = GoogleFonts.interTextTheme(base.textTheme).copyWith(
-    displayLarge: GoogleFonts.inter(
-      fontSize: 32, fontWeight: FontWeight.w800,
-      color: scheme.textPrimary, letterSpacing: -1.0,
-    ),
-    displayMedium: GoogleFonts.inter(
-      fontSize: 28, fontWeight: FontWeight.w700,
-      color: scheme.textPrimary, letterSpacing: -0.8,
-    ),
-    displaySmall: GoogleFonts.inter(
-      fontSize: 24, fontWeight: FontWeight.w700,
-      color: scheme.textPrimary, letterSpacing: -0.5,
-    ),
-    headlineLarge: GoogleFonts.inter(
-      fontSize: 22, fontWeight: FontWeight.w700,
-      color: scheme.textPrimary, letterSpacing: -0.3,
-    ),
-    headlineMedium: GoogleFonts.inter(
-      fontSize: 20, fontWeight: FontWeight.w600,
-      color: scheme.textPrimary,
-    ),
-    headlineSmall: GoogleFonts.inter(
-      fontSize: 18, fontWeight: FontWeight.w600,
-      color: scheme.textPrimary,
-    ),
-    titleLarge: GoogleFonts.inter(
-      fontSize: 17, fontWeight: FontWeight.w600,
-      color: scheme.textPrimary,
-    ),
-    titleMedium: GoogleFonts.inter(
-      fontSize: 15, fontWeight: FontWeight.w600,
-      color: scheme.textPrimary,
-    ),
-    titleSmall: GoogleFonts.inter(
-      fontSize: 14, fontWeight: FontWeight.w500,
-      color: scheme.textSecondary,
-    ),
-    bodyLarge: GoogleFonts.inter(
-      fontSize: 16, fontWeight: FontWeight.w400,
-      color: scheme.textPrimary, height: 1.6,
-    ),
-    bodyMedium: GoogleFonts.inter(
-      fontSize: 14, fontWeight: FontWeight.w400,
-      color: scheme.textSecondary, height: 1.5,
-    ),
-    bodySmall: GoogleFonts.inter(
-      fontSize: 12, fontWeight: FontWeight.w400,
-      color: scheme.textMuted, height: 1.4,
-    ),
-    labelLarge: GoogleFonts.inter(
-      fontSize: 14, fontWeight: FontWeight.w600,
-      color: scheme.textPrimary, letterSpacing: 0.1,
-    ),
-    labelMedium: GoogleFonts.inter(
-      fontSize: 12, fontWeight: FontWeight.w500,
-      color: scheme.textSecondary,
-    ),
-    labelSmall: GoogleFonts.inter(
-      fontSize: 11, fontWeight: FontWeight.w500,
-      color: scheme.textMuted, letterSpacing: 0.3,
-    ),
+  // Map the design system's type scale (lib/core/theme/app_typography.dart)
+  // onto Material's TextTheme slots, applying scheme colors — the scale
+  // itself carries no color (see AppTypography doc comment).
+  final textTheme = base.textTheme.copyWith(
+    displayLarge: AppTypography.display.copyWith(color: scheme.textPrimary),
+    displayMedium: AppTypography.h1.copyWith(color: scheme.textPrimary),
+    displaySmall: AppTypography.h2.copyWith(color: scheme.textPrimary),
+    headlineLarge: AppTypography.h2.copyWith(color: scheme.textPrimary),
+    headlineMedium: AppTypography.h3.copyWith(color: scheme.textPrimary),
+    headlineSmall: AppTypography.h3.copyWith(color: scheme.textPrimary),
+    titleLarge: AppTypography.title.copyWith(color: scheme.textPrimary),
+    titleMedium: AppTypography.title.copyWith(color: scheme.textPrimary),
+    titleSmall: AppTypography.label.copyWith(color: scheme.textSecondary),
+    bodyLarge: AppTypography.bodyLg.copyWith(color: scheme.textPrimary),
+    bodyMedium: AppTypography.body.copyWith(color: scheme.textSecondary),
+    bodySmall: AppTypography.caption.copyWith(color: scheme.textMuted),
+    labelLarge: AppTypography.button.copyWith(color: scheme.textPrimary),
+    labelMedium: AppTypography.label.copyWith(color: scheme.textSecondary),
+    labelSmall: AppTypography.caption.copyWith(color: scheme.textMuted),
   );
 
   return base.copyWith(
@@ -112,11 +71,7 @@ ThemeData buildTheme(AppColorScheme scheme) {
       scrolledUnderElevation: 0,
       shadowColor:      Colors.transparent,
       centerTitle:      true,
-      titleTextStyle: GoogleFonts.inter(
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
-        color: scheme.textPrimary,
-      ),
+      titleTextStyle: AppTypography.title.copyWith(color: scheme.textPrimary),
       systemOverlayStyle: scheme.isDark
           ? SystemUiOverlayStyle.light
           : SystemUiOverlayStyle.dark,
@@ -134,19 +89,16 @@ ThemeData buildTheme(AppColorScheme scheme) {
       backgroundColor: scheme.surface,
       elevation:       0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: AppRadius.xlRadius,
       ),
     ),
 
     // Snackbar matches surface
     snackBarTheme: SnackBarThemeData(
       backgroundColor: scheme.surface,
-      contentTextStyle: GoogleFonts.inter(
-        fontSize: 14,
-        color: scheme.textPrimary,
-      ),
+      contentTextStyle: AppTypography.body.copyWith(color: scheme.textPrimary),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdRadius,
       ),
       behavior: SnackBarBehavior.floating,
     ),

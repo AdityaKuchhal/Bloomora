@@ -117,9 +117,9 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
   }
 
   Color _skillLevelColor(double score) {
-    if (score < 0.40) return const Color(0xFFEF4444);
-    if (score < 0.70) return const Color(0xFFF59E0B);
-    return const Color(0xFF10B981);
+    if (score < 0.40) return AppColors.error;
+    if (score < 0.70) return AppColors.warning;
+    return AppColors.success;
   }
 
   void _onTapDomain(String domainName) {
@@ -360,12 +360,14 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEEF2FF) : Colors.white,
+          color: isSelected
+              ? scheme.primary.withValues(alpha: scheme.isDark ? 0.20 : 0.08)
+              : scheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
                 ? scheme.primary.withValues(alpha: 0.25)
-                : Colors.grey.shade200,
+                : scheme.border,
             width: 1.5,
           ),
           boxShadow: [

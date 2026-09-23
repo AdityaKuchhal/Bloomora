@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/widgets/cards/glass_card.dart';
 import '../../../onboarding/presentation/providers/onboarding_provider.dart';
 import '../../data/question_bank.dart';
 import '../providers/questionnaire_provider.dart';
@@ -329,7 +329,7 @@ class _LoadingAnalysisPageState extends ConsumerState<LoadingAnalysisPage>
                   children: [
                     const Icon(
                       Icons.check_circle_rounded,
-                      color: Color(0xFF10B981),
+                      color: AppColors.success,
                       size: 48,
                     ),
                     const SizedBox(height: 16),

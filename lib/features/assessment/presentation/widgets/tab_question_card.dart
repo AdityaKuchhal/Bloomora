@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../domain/models/question_model.dart';
 
-class TabQuestionCard extends StatelessWidget {
+class TabQuestionCard extends ConsumerWidget {
   final QuestionModel question;
   final int questionNumber;
   final int? selectedScore;
@@ -18,11 +19,13 @@ class TabQuestionCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = ref.watch(activeColorSchemeProvider);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -42,14 +45,14 @@ class TabQuestionCard extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E3A8A).withValues(alpha: 0.1),
+                color: scheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
                 child: Text(
                   '$questionNumber',
-                  style: const TextStyle(
-                    color: const Color(0xFF1E3A8A),
+                  style: TextStyle(
+                    color: scheme.primary,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -61,10 +64,10 @@ class TabQuestionCard extends StatelessWidget {
             Expanded(
               child: Text(
                 question.questionText,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: scheme.textPrimary,
                   height: 1.4,
                 ),
               ),
@@ -83,18 +86,16 @@ class TabQuestionCard extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF1E3A8A) : Colors.white,
+                      color: isSelected ? scheme.primary : scheme.surface,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFF1E3A8A)
-                            : AppColors.grey300,
+                        color: isSelected ? scheme.primary : scheme.border,
                         width: 1.5,
                       ),
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF1E3A8A).withValues(alpha: 0.25),
+                                color: scheme.primary.withValues(alpha: 0.25),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               )
@@ -107,9 +108,7 @@ class TabQuestionCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.grey500,
+                          color: isSelected ? Colors.white : scheme.textMuted,
                         ),
                       ),
                     ),

@@ -799,7 +799,9 @@ class _AuthPageState extends ConsumerState<AuthPage>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4285F4),
+                    // Exception: Google's own brand color, not an adaptive
+                    // theme token — see AppColors.googleBrandBlue.
+                    color: AppColors.googleBrandBlue,
                     height: 1.0,
                   ),
                 ),
