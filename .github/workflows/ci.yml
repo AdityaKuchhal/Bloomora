@@ -21,14 +21,20 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create .env for CI
+      - name: Create .env for CI (development)
+        # pubspec.yaml declares ONLY .env as a Flutter asset — never
+        # .env.development/.env.staging/.env.production directly — so a
+        # build only ever bundles the one environment it was built for.
+        # This job targets development, so only development's (non-secret,
+        # public-tier) values are written here. No AI provider key is
+        # written — that key is server-only, never bundled into the
+        # Flutter app.
         run: |
           cat > .env << EOF
+          APP_ENV=development
           API_BASE_URL=${{ secrets.API_BASE_URL }}
           SUPABASE_URL=${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          APP_ENV=development
           EOF
 
       - name: Install dependencies
@@ -41,7 +47,7 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Run tests
-        run: flutter test
+        run: flutter test --dart-define=APP_ENV=development
 
   build-ios:
     name: Build iOS
@@ -59,14 +65,21 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create .env for CI
+      - name: Create .env for CI (production)
+        # This job targets production, but production infra doesn't exist
+        # yet — .env stays a clearly-marked placeholder rather than
+        # silently reusing dev secrets (see docs/audit-findings.md FT-001).
+        # `flutter build` only compiles; it doesn't run the app, so the
+        # placeholder values don't fail this step — the app's own
+        # fail-fast check only matters when the built app is actually run.
+        # Only production's values are ever written here — this job never
+        # sees dev secrets, so a production build can't bundle them.
         run: |
-          cat > .env << EOF
-          API_BASE_URL=${{ secrets.API_BASE_URL }}
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          cat > .env << 'EOF'
           APP_ENV=production
+          API_BASE_URL=https://REPLACE_WITH_PRODUCTION_API_URL
+          SUPABASE_URL=https://REPLACE_WITH_PRODUCTION_PROJECT.supabase.co
+          SUPABASE_ANON_KEY=REPLACE_WITH_PRODUCTION_ANON_KEY
           EOF
 
       - name: Install dependencies
@@ -76,7 +89,7 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define=APP_ENV=production
 
   build-android:
     name: Build Android
@@ -100,14 +113,16 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create .env for CI
+      - name: Create .env for CI (production)
+        # Same rationale as the iOS job above: production infra doesn't
+        # exist yet, so .env stays a placeholder; only production's values
+        # are ever written here, so this job never sees dev secrets.
         run: |
-          cat > .env << EOF
-          API_BASE_URL=${{ secrets.API_BASE_URL }}
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          cat > .env << 'EOF'
           APP_ENV=production
+          API_BASE_URL=https://REPLACE_WITH_PRODUCTION_API_URL
+          SUPABASE_URL=https://REPLACE_WITH_PRODUCTION_PROJECT.supabase.co
+          SUPABASE_ANON_KEY=REPLACE_WITH_PRODUCTION_ANON_KEY
           EOF
 
       - name: Install dependencies
@@ -117,7 +132,7 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Android APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=APP_ENV=production
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

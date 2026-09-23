@@ -4,7 +4,8 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  # Dart 3.5.0 ships with Flutter 3.24.0 — see .fvmrc and README "Development Setup".
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -86,6 +87,11 @@ flutter:
   uses-material-design: true
   
   assets:
+    # Only .env is ever bundled as an asset — never .env.development /
+    # .env.staging / .env.production directly, or every build would ship
+    # every environment's values. scripts/select_env.sh copies the target
+    # environment's file to .env before build/run. See "Development Setup"
+    # in README.md.
     - .env
     # - assets/images/
     # - assets/animations/

@@ -80,10 +80,10 @@
 
 ### **Prerequisites**
 
-- Flutter SDK
+- Flutter SDK (pinned via FVM — see [Development Setup](#-development-setup) below)
 - Node.js
 - Supabase account
-- OpenAI API key
+- Anthropic API key (server-side only — see [Development Setup](#-development-setup))
 
 ### **Setup Instructions**
 
@@ -106,11 +106,7 @@
    - Deploy `sample_backend/` to Railway
    - Configure environment variables
 
-4. **Run Flutter App**
-   ```bash
-   flutter pub get
-   flutter run
-   ```
+4. **Run Flutter App** — see [Development Setup](#-development-setup) for the FVM/env-file steps that must come before `flutter pub get`/`flutter run`.
 
 ### **Detailed Setup**
 
@@ -118,6 +114,126 @@
 - **[API Documentation](api_endpoints.md)**: Backend API reference
 - **[Database Schema](database_schema.sql)**: Database structure
 - **[Backend Setup](backend_setup.md)**: Backend deployment guide
+
+## 🛠️ **Development Setup**
+
+This section is the source of truth for Flutter/Dart/Node versions and
+environment configuration (FT-001). See `docs/audit-findings.md` for the
+audit this closes out.
+
+### Flutter/Dart version (pinned via FVM)
+
+- **Flutter: `3.24.0`** / **Dart: `3.5.0`** (the Dart version Flutter 3.24.0 ships with) — pinned in the committed [`.fvmrc`](.fvmrc) and in `pubspec.yaml`'s `environment.sdk` constraint (`>=3.5.0 <4.0.0`).
+- This matches what [`.github/workflows/ci.yml`](.github/workflows/ci.yml) hardcodes in its three `flutter-version: '3.24.0'` steps. **If you ever bump the Flutter version, update `.fvmrc` and all three CI steps together** — they are not currently wired to read from one place (see "Known follow-ups" below).
+- To use the pin locally:
+  ```bash
+  dart pub global activate fvm   # one-time
+  fvm install                    # installs 3.24.0 per .fvmrc
+  fvm flutter pub get
+  fvm flutter run
+  ```
+  (Prefix any `flutter`/`dart` command with `fvm` to use the pinned version. Without `fvm`, your global Flutter install is used, which may not match 3.24.0.)
+
+### Node/backend version
+
+- `backend/package-lock.json` is committed — always run `npm ci` (not `npm install`) in `backend/` for reproducible installs matching that lockfile.
+
+### Environment configuration (dev/staging/production)
+
+There are three **source** files, one per environment — but only ever
+**one** of them is ever bundled into a build. `pubspec.yaml` declares just
+`.env` as a Flutter asset (never `.env.development`/`.env.staging`/
+`.env.production` directly), so a compiled app — including a "release"
+build — only ever contains the single environment's values it was built
+for, never all three. This matters because `SUPABASE_ANON_KEY` etc. are
+public-tier but still environment-specific — a production binary must not
+ship dev credentials.
+
+| Environment | Source file | Selected via | Backing infra |
+|---|---|---|---|
+| development (default) | `.env.development` | `scripts/select_env.sh development` (or no arg), + `--dart-define=APP_ENV=development` or no flag | existing dev Supabase project ("bloomora") |
+| staging | `.env.staging` | `scripts/select_env.sh staging` + `--dart-define=APP_ENV=staging` | **does not exist yet** — placeholder values only |
+| production | `.env.production` | `scripts/select_env.sh production` + `--dart-define=APP_ENV=production` | **does not exist yet** — placeholder values only |
+
+Setup:
+
+```bash
+cp .env.development.example .env.development   # fill in real dev values (ask a teammate)
+cp .env.staging.example .env.staging            # leave as placeholders until staging infra exists
+cp .env.production.example .env.production       # leave as placeholders until production infra exists
+```
+
+Before every `flutter run`/`flutter build`, copy the target environment's
+file to `.env` (the one file pubspec.yaml actually bundles) with
+[`scripts/select_env.sh`](scripts/select_env.sh), passing the **same**
+environment name you're about to pass via `--dart-define`:
+
+```bash
+scripts/select_env.sh development && flutter run
+scripts/select_env.sh staging && flutter run --dart-define=APP_ENV=staging       # shows the config-error screen today (expected — staging infra doesn't exist yet)
+scripts/select_env.sh production && flutter build apk --release --dart-define=APP_ENV=production
+```
+
+If these two ever disagree (e.g. you forget to re-run the script after
+switching `--dart-define`), the app detects the mismatch at startup and
+shows the Configuration Error screen rather than silently running
+against the wrong environment's data — see
+[`lib/main.dart`](lib/main.dart).
+
+`.env` and all three `.env.<environment>` source files are gitignored —
+never commit any of them.
+
+Backend:
+
+```bash
+cp backend/.env.example backend/.env
+# fill in real values, then:
+cd backend && npm ci && npm run dev
+```
+
+See [Mobile App Configuration](#-mobile-app-configuration) below for what each mobile variable is and its public/secret classification.
+
+### Known follow-ups (intentionally out of FT-001's scope)
+
+- CI still hardcodes `3.24.0` directly in three `flutter-action` steps rather than reading `.fvmrc`; switching CI to `fvm flutter` was judged a non-trivial workflow restructuring and left for a follow-up.
+- CI's staging/production values (where used) are hardcoded placeholders in the workflow file, not pulled from GitHub Secrets — once real staging/production infra and secrets exist, update the corresponding CI steps to source them from secrets instead.
+- `scripts/select_env.sh` is a manual step before `flutter run`/`flutter build` today; folding it into a `flutter run` wrapper or IDE launch config would remove the chance of forgetting it (mitigated for now by the startup mismatch check described above).
+
+## 📱 **Mobile App Configuration**
+
+Every public config variable the Flutter app reads, defined in
+[`lib/core/config/app_config.dart`](lib/core/config/app_config.dart). All of
+these are **public-tier** — safe to ship inside the compiled app — per the
+Security & Access doc's classification (see `docs/audit-findings.md`
+Section A/E): Supabase's anon/publishable key and Google's OAuth client IDs
+are designed to be embedded client-side; RLS (not key secrecy) is the real
+access boundary for Supabase, and Google client IDs are not secrets.
+
+| Variable | Purpose | Source |
+|---|---|---|
+| `APP_ENV` | Which environment this build/run targets (`development`/`staging`/`production`) | Set inside `.env.<environment>`, copied into the bundled `.env` by `scripts/select_env.sh`; cross-checked at startup against the `--dart-define=APP_ENV=...` flag |
+| `API_BASE_URL` | Base URL of the Node/Express backend API | `.env.<environment>`, via `.env` (see above) |
+| `SUPABASE_URL` | Supabase project URL | `.env.<environment>`, via `.env` (see above) |
+| `SUPABASE_ANON_KEY` | Supabase anon/publishable key (public by design — RLS is the real boundary) | `.env.<environment>`, via `.env` (see above) |
+| `GOOGLE_IOS_CLIENT_ID` | Google Sign-In OAuth client ID (iOS) | Compile-time `--dart-define`, with a checked-in default in `app_config.dart` (not per-environment today) |
+| `GOOGLE_WEB_CLIENT_ID` | Google Sign-In OAuth client ID (web/server) | Compile-time `--dart-define`, with a checked-in default in `app_config.dart` (not per-environment today) |
+
+**Never add an AI provider key (Anthropic or otherwise) to any
+`.env.<environment>` file or to `app_config.dart`.** That class of key is
+server-only — see `backend/.env.example` — and must never be bundled into
+the Flutter app. This is enforced by omission: there is no AI-provider-key
+getter in `app_config.dart` and none of the `.env.<environment>` files
+contain one. (A prior `OPENAI_API_KEY`/`openAiApiKey` pairing existed here
+and shipped inside CI's release builds' bundled `.env`; both were removed
+as part of FT-001 — see `docs/audit-findings.md` Section A/E.)
+
+Required vs. optional: `API_BASE_URL`, `SUPABASE_URL`, and
+`SUPABASE_ANON_KEY` are required — the app fails fast with a readable
+**Configuration Error** screen at startup (see
+[`lib/core/config/config_error_screen.dart`](lib/core/config/config_error_screen.dart))
+if any is missing or still a `REPLACE_WITH_*` placeholder for the selected
+environment. `GOOGLE_IOS_CLIENT_ID`/`GOOGLE_WEB_CLIENT_ID` have checked-in
+defaults and are not part of that fail-fast check.
 
 ## 📁 **Project Structure**
 
