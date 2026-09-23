@@ -5,55 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'theme_provider.dart';
 
-// ─── GlassCard ────────────────────────────────────────────────────────────────
-
-/// A frosted-glass container. Drop any child inside.
-///
-/// Uses [BackdropFilter] + [ImageFilter.blur] so it must be placed over content
-/// that has something to blur (e.g. a gradient background).
-class GlassCard extends ConsumerWidget {
-  final Widget child;
-  final double borderRadius;
-  final EdgeInsets padding;
-  final double blurStrength;
-
-  const GlassCard({
-    super.key,
-    required this.child,
-    this.borderRadius = 20,
-    this.padding = const EdgeInsets.all(20),
-    this.blurStrength = 12,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = ref.watch(activeColorSchemeProvider);
-    final radius = BorderRadius.circular(borderRadius);
-
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurStrength, sigmaY: blurStrength),
-        child: Container(
-          decoration: BoxDecoration(
-            color: scheme.glassBase,
-            borderRadius: radius,
-            border: Border.all(color: scheme.glassBorder, width: 1.0),
-            boxShadow: const [
-              BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.08),
-                blurRadius: 24,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          padding: padding,
-          child: child,
-        ),
-      ),
-    );
-  }
-}
+// NOTE: GlassCard used to live in this file. It's been consolidated into
+// lib/core/widgets/cards/glass_card.dart per the Frontend Spec's file
+// structure (FT-002) — import it from there. GlassButton/GlassTextField
+// below are unchanged; migrating their remaining call sites to the new
+// lib/core/widgets/buttons/app_button.dart and
+// lib/core/widgets/inputs/app_text_field.dart is out of FT-002's scope.
 
 // ─── GlassButton ─────────────────────────────────────────────────────────────
 

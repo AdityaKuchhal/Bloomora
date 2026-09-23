@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../providers/dashboard_provider.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -36,19 +38,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: scheme.background,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFE0F2FE), // Light blue gradient start
-              Color(0xFFF0F9FF), // Very light blue
-              Color(0xFFF8FAFC), // Light gray
+              scheme.accent.withValues(alpha: scheme.isDark ? 0.16 : 0.20),
+              scheme.surfaceElevated,
+              scheme.background,
             ],
-            stops: [0.0, 0.3, 1.0],
+            stops: const [0.0, 0.3, 1.0],
           ),
         ),
         child: SafeArea(
@@ -70,7 +73,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         child: const Text('Dismiss'),
                       ),
                     ],
-                    backgroundColor: Colors.red.shade50,
+                    backgroundColor: AppColors.error.withValues(alpha: 0.08),
                     dividerColor: Colors.transparent,
                   );
                 },
@@ -125,6 +128,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildHeader() {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -138,12 +142,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 height: 50,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                  gradient: LinearGradient(
+                    colors: [scheme.primary, scheme.accent],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                      color: scheme.primary.withOpacity(0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -197,20 +201,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               ],
             ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Icon(
                     Icons.search,
-                    color: Color(0xFF6B7280),
+                    color: scheme.textSecondary,
                     size: 20,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
                     'Search activities...',
                     style: TextStyle(
-                      color: Color(0xFF6B7280),
+                      color: scheme.textSecondary,
                       fontSize: 16,
                       fontFamily: 'SF Pro Text',
                     ),
@@ -225,6 +229,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildActionButton(IconData icon, {bool hasNotification = false}) {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Stack(
       children: [
         Container(
@@ -247,7 +252,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
           child: Icon(
             icon,
-            color: const Color(0xFF1E3A8A),
+            color: scheme.primary,
             size: 20,
           ),
         ),
@@ -259,7 +264,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               width: 8,
               height: 8,
               decoration: const BoxDecoration(
-                color: Color(0xFFEF4444),
+                color: AppColors.error,
                 shape: BoxShape.circle,
               ),
             ),
@@ -269,6 +274,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildDateSelector() {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return SizedBox(
       height: 50,
       child: ListView.builder(
@@ -286,14 +292,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               width: 50,
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF1E3A8A)
-                    : const Color(0xFFF3F4F6),
+                color: isSelected ? scheme.primary : scheme.surfaceElevated,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF1E3A8A).withOpacity(0.3),
+                          color: scheme.primary.withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -306,8 +310,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   Text(
                     _dates[index]['day'],
                     style: TextStyle(
-                      color:
-                          isSelected ? Colors.white : const Color(0xFF6B7280),
+                      color: isSelected ? Colors.white : scheme.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                       fontFamily: 'SF Pro Text',
@@ -317,8 +320,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   Text(
                     _dates[index]['date'],
                     style: TextStyle(
-                      color:
-                          isSelected ? Colors.white : const Color(0xFF1E3A8A),
+                      color: isSelected ? Colors.white : scheme.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'SF Pro Text',
@@ -334,6 +336,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildSummaryCards() {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Row(
       children: [
         Expanded(
@@ -341,7 +344,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             icon: Icons.touch_app,
             value: '12',
             label: 'Activities',
-            color: const Color(0xFFF59E0B),
+            // Three distinct hues distinguishing the three stat cards from
+            // each other — not semantic tokens (these aren't warnings/
+            // errors), so pulled from the palette's own primary/secondary/
+            // accent trio rather than AppColors.warning etc.
+            color: scheme.accent,
           ),
         ),
         const SizedBox(width: 12),
@@ -350,7 +357,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             icon: Icons.psychology,
             value: '06',
             label: 'Skills',
-            color: const Color(0xFF8B5CF6),
+            color: scheme.secondary,
           ),
         ),
         const SizedBox(width: 12),
@@ -359,7 +366,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             icon: Icons.schedule,
             value: '2:30',
             label: 'Hours',
-            color: const Color(0xFF3B82F6),
+            color: scheme.primary,
           ),
         ),
       ],
@@ -372,6 +379,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     required String label,
     required Color color,
   }) {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -422,20 +430,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1E3A8A),
+              color: scheme.primary,
               fontFamily: 'SF Pro Display',
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF6B7280),
+              color: scheme.textSecondary,
               fontFamily: 'SF Pro Text',
             ),
           ),
@@ -445,6 +453,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildCategorySelector() {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return SizedBox(
       height: 50,
       child: ListView.builder(
@@ -462,14 +471,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               margin: const EdgeInsets.only(right: 12),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF1E3A8A)
-                    : Colors.white.withOpacity(0.3),
+                color: isSelected ? scheme.primary : Colors.white.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF1E3A8A)
-                      : Colors.white.withOpacity(0.5),
+                  color: isSelected ? scheme.primary : Colors.white.withOpacity(0.5),
                   width: 1.5,
                 ),
                 boxShadow: [
@@ -485,15 +490,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 children: [
                   Icon(
                     _getCategoryIcon(_categories[index]),
-                    color: isSelected ? Colors.white : const Color(0xFF1E3A8A),
+                    color: isSelected ? Colors.white : scheme.primary,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     _categories[index],
                     style: TextStyle(
-                      color:
-                          isSelected ? Colors.white : const Color(0xFF1E3A8A),
+                      color: isSelected ? Colors.white : scheme.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'SF Pro Text',
@@ -526,6 +530,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildFeaturedActivity() {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Container(
       height: 200,
       decoration: BoxDecoration(
@@ -544,13 +549,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E3A8A),
-                  Color(0xFF3B82F6),
-                ],
+                colors: [scheme.primary, scheme.accent],
               ),
             ),
           ),
@@ -678,9 +680,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.play_arrow,
-                        color: Color(0xFF1E3A8A),
+                        color: scheme.primary,
                         size: 24,
                       ),
                     ),
@@ -695,15 +697,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildUpcomingActivities() {
+    final scheme = ref.watch(activeColorSchemeProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Upcoming Activities',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1E3A8A),
+            color: scheme.primary,
             fontFamily: 'SF Pro Display',
           ),
         ),
@@ -746,58 +749,58 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                            color: scheme.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.psychology,
-                            color: Color(0xFF1E3A8A),
+                            color: scheme.primary,
                             size: 16,
                           ),
                         ),
                         const Spacer(),
-                        const Icon(
+                        Icon(
                           Icons.more_vert,
-                          color: Color(0xFF6B7280),
+                          color: scheme.textSecondary,
                           size: 16,
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Cognitive Skills',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E3A8A),
+                        color: scheme.primary,
                         fontFamily: 'SF Pro Text',
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
+                    Text(
                       'Memory games and puzzles',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: scheme.textSecondary,
                         fontFamily: 'SF Pro Text',
                       ),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.schedule,
-                          color: Color(0xFF6B7280),
+                          color: scheme.textSecondary,
                           size: 12,
                         ),
                         const SizedBox(width: 4),
-                        const Text(
+                        Text(
                           '15 min',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF6B7280),
+                            color: scheme.textSecondary,
                             fontFamily: 'SF Pro Text',
                           ),
                         ),
@@ -854,6 +857,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildNavItem(
       IconData icon, IconData activeIcon, String label, int index) {
+    final scheme = ref.watch(activeColorSchemeProvider);
     final isSelected = _selectedIndex == index;
     return GestureDetector(
       onTap: () {
@@ -879,7 +883,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
+          color: isSelected ? scheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -887,14 +891,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? Colors.white : const Color(0xFF6B7280),
+              color: isSelected ? Colors.white : scheme.textSecondary,
               size: 20,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                color: isSelected ? Colors.white : scheme.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
                 fontFamily: 'SF Pro Text',

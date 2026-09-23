@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/services/supabase_service.dart';
+import '../../../../core/widgets/cards/glass_card.dart';
 import '../providers/onboarding_provider.dart';
 import '../../domain/models/child_model.dart';
 
@@ -99,6 +100,7 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _selectDate() async {
+    final scheme = ref.read(activeColorSchemeProvider);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 2)),
@@ -107,11 +109,16 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF6C63FF),
+            colorScheme: ColorScheme(
+              brightness: scheme.isDark ? Brightness.dark : Brightness.light,
+              primary: scheme.primary,
               onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
+              secondary: scheme.secondary,
+              onSecondary: Colors.white,
+              surface: scheme.surface,
+              onSurface: scheme.textPrimary,
+              error: AppColors.error,
+              onError: Colors.white,
             ),
           ),
           child: child!,

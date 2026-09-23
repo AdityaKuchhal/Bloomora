@@ -98,8 +98,21 @@ flutter:
     # - assets/icons/
     # - assets/videos/
   
-  # Using Google Fonts instead of custom fonts
-  # fonts:
-  #   - family: CustomIcons
-  #     fonts:
-  #       - asset: assets/fonts/custom_icons.ttf
+  # Manrope (headings) + Inter (body/interface) — bundled locally per the
+  # Frontend Spec's "bundle approved font assets" rule (no runtime CDN
+  # fetch). Both are variable fonts (OFL-licensed, from Google Fonts);
+  # registering the same file at multiple weights lets Flutter resolve the
+  # correct instance from the weight axis. See lib/core/theme/app_typography.dart.
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Variable.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Variable.ttf
+          weight: 600

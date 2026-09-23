@@ -117,6 +117,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
   }
 
   void _showCommDialog() {
+    final scheme = ref.read(activeColorSchemeProvider);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -131,7 +132,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.chat_bubble_outline_rounded,
-                  color: Color(0xFF8B4A5C), size: 20),
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -154,10 +155,9 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
+            child: Text(
               'Got it',
-              style: TextStyle(
-                  fontWeight: FontWeight.w700, color: Color(0xFF1E3A8A)),
+              style: TextStyle(fontWeight: FontWeight.w700, color: scheme.primary),
             ),
           ),
         ],
@@ -979,9 +979,9 @@ class _AssessmentIntroDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const notYetColor = Color(0xFFEF4444);
-    const sometimesColor = Color(0xFFF59E0B);
-    const yesColor = Color(0xFF10B981);
+    const notYetColor = AppColors.error;
+    const sometimesColor = AppColors.warning;
+    const yesColor = AppColors.success;
 
     return Dialog(
       backgroundColor: Colors.transparent,

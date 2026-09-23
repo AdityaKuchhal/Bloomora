@@ -9,8 +9,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/widgets/cards/glass_card.dart';
 
 class EmailVerificationPage extends ConsumerStatefulWidget {
   final String email;
