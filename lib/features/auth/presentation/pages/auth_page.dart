@@ -12,6 +12,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../providers/auth_provider.dart';
@@ -129,12 +130,11 @@ class _AuthPageState extends ConsumerState<AuthPage>
         // (email confirmation is disabled in Supabase)
         final user = SupabaseService.currentUser;
         if (user != null && user.emailConfirmedAt != null) {
-          // User is confirmed — go through smart routing
-          final route = await NavigationService.getPostLoginRoute(
-            onGenderDetected: (gender) =>
-                ref.read(themeNotifierProvider.notifier).setGender(gender),
-          );
-          if (mounted) context.go(route); // ignore: use_build_context_synchronously
+          // User is confirmed — load their child (if any) for theme/state,
+          // then go to /home; route_guards.dart redirects to the right
+          // onboarding step if one isn't finished yet.
+          await NavigationService.loadActiveChildIfAny(ref);
+          if (mounted) context.go(AppRoutes.home); // ignore: use_build_context_synchronously
         } else {
           // User needs email confirmation
           context.go(
@@ -171,11 +171,8 @@ class _AuthPageState extends ConsumerState<AuthPage>
             password: _siPasswordController.text,
           );
       if (!mounted) return;
-      final route = await NavigationService.getPostLoginRoute(
-        onGenderDetected: (gender) =>
-            ref.read(themeNotifierProvider.notifier).setGender(gender),
-      );
-      if (mounted) context.go(route);
+      await NavigationService.loadActiveChildIfAny(ref);
+      if (mounted) context.go(AppRoutes.home);
     } catch (e) {
       if (mounted) {
         _shakeCtrl.forward(from: 0);
@@ -242,11 +239,8 @@ class _AuthPageState extends ConsumerState<AuthPage>
       );
 
       if (!mounted) return;
-      final route = await NavigationService.getPostLoginRoute(
-        onGenderDetected: (gender) =>
-            ref.read(themeNotifierProvider.notifier).setGender(gender),
-      );
-      if (mounted) context.go(route);
+      await NavigationService.loadActiveChildIfAny(ref);
+      if (mounted) context.go(AppRoutes.home);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

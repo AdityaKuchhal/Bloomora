@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
 
@@ -95,7 +96,7 @@ class _IntroPageState extends ConsumerState<IntroPage>
   }
 
   void _skipIntro() => _goToSignup();
-  void _goToSignup() => context.go('/parent-signup');
+  void _goToSignup() => context.go(AppRoutes.signUp);
   // ─────────────────────────────────────────────────────────────────────────
 
   @override
@@ -145,20 +146,20 @@ class _IntroPageState extends ConsumerState<IntroPage>
                       entryCtrl: _slide1Entry,
                       currentPage: _currentPage,
                       onNext: _nextPage,
-                      onSignIn: () => context.go('/parent-signin'),
+                      onSignIn: () => context.go(AppRoutes.signIn),
                     ),
                     _Slide2(
                       scheme: scheme,
                       currentPage: _currentPage,
                       onNext: _nextPage,
-                      onSignIn: () => context.go('/parent-signin'),
+                      onSignIn: () => context.go(AppRoutes.signIn),
                     ),
                     _Slide3(
                       scheme: scheme,
                       barCtrl: _barController,
                       currentPage: _currentPage,
                       onNext: _nextPage,
-                      onSignIn: () => context.go('/parent-signin'),
+                      onSignIn: () => context.go(AppRoutes.signIn),
                     ),
                   ],
                 ),

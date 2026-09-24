@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -14,7 +13,6 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  int _selectedIndex = 0;
   int _selectedCategoryIndex = 0;
   int _selectedDateIndex = 3; // Tuesday 14th (current day)
 
@@ -123,7 +121,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
@@ -816,97 +813,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildBottomNavigation() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.5),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 20,
-            offset: const Offset(0, -10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home_outlined, Icons.home, 'Home', 0),
-            _buildNavItem(Icons.search_outlined, Icons.search, 'Search', 1),
-            _buildNavItem(
-                Icons.trending_up_outlined, Icons.trending_up, 'Progress', 2),
-            _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-      IconData icon, IconData activeIcon, String label, int index) {
-    final scheme = ref.watch(activeColorSchemeProvider);
-    final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-
-        switch (index) {
-          case 0:
-            // Already on dashboard
-            break;
-          case 1:
-            context.go('/search');
-            break;
-          case 2:
-            context.go('/progress');
-            break;
-          case 3:
-            context.go('/profile');
-            break;
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? scheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? Colors.white : scheme.textSecondary,
-              size: 20,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : scheme.textSecondary,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                fontFamily: 'SF Pro Text',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Bottom nav removed — this screen is now a tab inside AppShell
+  // (lib/core/router/app_shell.dart), which renders the one persistent
+  // Home/Search/Progress/Profile bar. See FT-003.
 }

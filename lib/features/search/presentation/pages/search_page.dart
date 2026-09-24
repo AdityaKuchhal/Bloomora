@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 
+// This is a bottom-nav tab (see lib/core/router/app_shell.dart) — no back
+// button to Home; switching tabs is via the bottom nav, not an AppBar
+// back arrow.
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
 
@@ -15,10 +17,6 @@ class SearchPage extends StatelessWidget {
         title: const Text('Search'),
         backgroundColor: AppColors.backgroundPrimary,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.go('/dashboard'),
-          icon: const Icon(Icons.arrow_back_ios),
-        ),
       ),
       body: SafeArea(
         child: Padding(

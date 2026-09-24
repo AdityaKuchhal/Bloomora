@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
+// Bottom-nav tab (see lib/core/router/app_shell.dart) — no back button.
+// Sign-out below doesn't need an explicit navigation call: route_guards.dart
+// redirects to /sign-in the instant authProvider flips to unauthenticated.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
@@ -17,10 +19,6 @@ class ProfilePage extends ConsumerWidget {
         title: const Text('Profile'),
         backgroundColor: AppColors.backgroundPrimary,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.go('/dashboard'),
-          icon: const Icon(Icons.arrow_back_ios),
-        ),
       ),
       body: SafeArea(
         child: Padding(

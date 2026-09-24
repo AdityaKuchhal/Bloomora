@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 
+// Bottom-nav tab (see lib/core/router/app_shell.dart) — no back button.
 class ProgressPage extends StatelessWidget {
   const ProgressPage({super.key});
 
@@ -15,10 +15,6 @@ class ProgressPage extends StatelessWidget {
         title: const Text('Progress'),
         backgroundColor: AppColors.backgroundPrimary,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.go('/dashboard'),
-          icon: const Icon(Icons.arrow_back_ios),
-        ),
       ),
       body: SafeArea(
         child: Padding(

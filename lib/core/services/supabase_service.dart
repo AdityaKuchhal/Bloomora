@@ -5,6 +5,14 @@ class SupabaseService {
   SupabaseService._();
 
   static Future<void> initialize() async {
+    // TODO(FT-015): /reset-password (lib/features/auth/presentation/pages/
+    // reset_password_page.dart) and its route/guard/token-exchange logic
+    // are correct, but nothing can currently hand the app that URL — there's
+    // no custom URL scheme / universal link / associated domain registered
+    // (Info.plist, AndroidManifest.xml), and no Supabase "redirect URL" is
+    // configured here or in the Supabase dashboard. FT-015 owns wiring an
+    // actual deep-link path in, likely via a `redirectTo:` param here plus
+    // native scheme/domain registration.
     await Supabase.initialize(
       url: AppConfig.supabaseUrl,
       anonKey: AppConfig.supabaseAnonKey,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ActivityCompletionPage extends StatelessWidget {
@@ -159,7 +160,7 @@ class ActivityCompletionPage extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        context.go('/dashboard');
+                        context.go(AppRoutes.home);
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -175,7 +176,7 @@ class ActivityCompletionPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         // TODO: Navigate to next activity
-                        context.go('/dashboard');
+                        context.go(AppRoutes.home);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -99,12 +100,9 @@ class _EmailVerificationPageState
       );
 
       if (!mounted) return;
-      final route = await NavigationService.getPostLoginRoute(
-        onGenderDetected: (gender) =>
-            ref.read(themeNotifierProvider.notifier).setGender(gender),
-      );
+      await NavigationService.loadActiveChildIfAny(ref);
       if (!mounted) return; // guard after second await
-      context.go(route); // ignore: use_build_context_synchronously
+      context.go(AppRoutes.home); // ignore: use_build_context_synchronously
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -200,7 +198,7 @@ class _EmailVerificationPageState
                 children: [
                   // Back button
                   GestureDetector(
-                    onTap: () => context.go('/parent-signup'),
+                    onTap: () => context.go(AppRoutes.signUp),
                     child: GlassCard(
                       borderRadius: 18,
                       padding: EdgeInsets.zero,

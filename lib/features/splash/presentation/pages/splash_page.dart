@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -46,7 +47,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       final isAuthenticated = ref.read(authProvider).isAuthenticated;
-      context.go(isAuthenticated ? '/dashboard' : '/intro');
+      context.go(isAuthenticated ? AppRoutes.home : AppRoutes.welcome);
     });
   }
 

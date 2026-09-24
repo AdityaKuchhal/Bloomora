@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
+import '../../../../core/router/route_guards.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -234,8 +236,13 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
       );
 
       ref.read(childNotifierProvider.notifier).setChild(child);
+      // See route_guards.dart's OnboardingCompleteCache: defensive, not a
+      // fix for today's flow (this user can't have been cached "complete"
+      // if they just created their first child), but keeps a future
+      // add-another-child flow correct too.
+      ref.read(onboardingCompleteCacheProvider.notifier).invalidate(parentId);
 
-      if (mounted) context.go('/questionnaire');
+      if (mounted) context.go(AppRoutes.onboardingAssessment);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -525,7 +532,7 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
         children: [
           // Back → auth
           GestureDetector(
-            onTap: () => context.go('/parent-signin'),
+            onTap: () => context.go(AppRoutes.signIn),
             child: Container(
               width: 36,
               height: 36,
