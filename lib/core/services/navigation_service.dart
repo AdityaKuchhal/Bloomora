@@ -1,72 +1,65 @@
-import '../services/supabase_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/onboarding/domain/models/child_model.dart';
+import '../../features/onboarding/presentation/providers/onboarding_provider.dart';
+import 'supabase_service.dart';
+
+/// Loads the signed-in user's child into [childNotifierProvider], if one
+/// exists — used right after sign-in/sign-up/verification so the app-wide
+/// active-child state (which lib/core/theme/theme_provider.dart's
+/// activeColorSchemeProvider already resolves the Ocean/Blossom theme from)
+/// is populated for returning users, not just newly-onboarded ones.
+///
+/// This used to also decide *where* to navigate (`getPostLoginRoute`) —
+/// that responsibility now belongs entirely to
+/// lib/core/router/route_guards.dart's onboarding-step resolver, which
+/// re-evaluates on every navigation rather than computing a one-shot
+/// decision here. Callers should just `context.go(AppRoutes.home)` after
+/// calling this and let the router redirect to the correct onboarding step
+/// if one isn't finished — see auth_page.dart / email_verification_page.dart.
 class NavigationService {
-
-  /// Determines the correct post-login route by querying Supabase.
-  ///
-  /// [onGenderDetected] is an optional callback invoked with the child's gender
-  /// string ('boy' or 'girl') once the child profile is loaded. Use this to
-  /// apply the gender theme from the call site, avoiding Ref/WidgetRef coupling.
-  static Future<String> getPostLoginRoute({
-    void Function(String gender)? onGenderDetected,
-  }) async {
+  static Future<void> loadActiveChildIfAny(WidgetRef ref) async {
     try {
       final userId = SupabaseService.currentUser?.id;
-      if (userId == null) return '/parent-signup';
+      if (userId == null) return;
 
-      // STEP 1 — Fetch child profile from Supabase
-      final childResponse = await SupabaseService.client
+      final response = await SupabaseService.client
           .from('children')
           .select()
           .eq('parent_id', userId)
-          .maybeSingle();
-
-      // No child profile
-      if (childResponse == null) return '/child-profile';
-
-      // STEP 2 — Notify caller of gender so it can apply the theme
-      final gender = (childResponse['gender'] as String? ?? 'boy').toLowerCase();
-      onGenderDetected?.call(gender == 'girl' ? 'girl' : 'boy');
-
-      final childId = childResponse['id'] as String;
-
-      // STEP 3 — Fetch assessment status
-      final assessmentResponse = await SupabaseService.client
-          .from('assessments')
-          .select()
-          .eq('child_id', childId)
-          .not('completed_at', 'is', null)
-          .order('created_at', ascending: false)
+          .order('created_at', ascending: true)
           .limit(1)
           .maybeSingle();
 
-      // No completed assessment
-      if (assessmentResponse == null) return '/questionnaire';
-
-      final assessmentId = assessmentResponse['id'] as String;
-
-      // STEP 4 — Check if priority selection is done
-      // Table may not exist yet — fall through to dashboard on any error
-      try {
-        // Check if priority was saved via domain_results count
-        // We'll add a proper priority_selections table later
-        // For now: if assessment exists and has domain_results → go to dashboard
-        final domainResultsResponse = await SupabaseService.client
-            .from('domain_results')
-            .select('id')
-            .eq('assessment_id', assessmentId)
-            .limit(1)
-            .maybeSingle();
-
-        if (domainResultsResponse == null) return '/priority-selection';
-        return '/dashboard';
-      } catch (_) {
-        return '/dashboard';
-      }
-
-    } catch (e) {
-      // On any error, safe fallback
-      return '/child-profile';
+      if (response == null) return;
+      applyChildRow(ref, response);
+    } catch (_) {
+      // Best-effort: theme/state population, not a security or navigation
+      // decision — route_guards.dart's own direct queries are what actually
+      // gate access, so a failure here just means the theme falls back to
+      // its pre-child default rather than blocking anything.
     }
+  }
+
+  /// Parses a raw Supabase `children` row and applies it to
+  /// [childNotifierProvider] — split out from [loadActiveChildIfAny] so
+  /// this parsing/wiring step (the actual fix: this was never called at all
+  /// for a returning sign-in before FT-003, only during fresh onboarding —
+  /// see git history) is unit-testable without a live Supabase connection.
+  /// See test/core/services/navigation_service_test.dart.
+  static void applyChildRow(WidgetRef ref, Map<String, dynamic> response) {
+    final child = ChildModel(
+      id: response['id'] as String,
+      parentId: response['parent_id'] as String,
+      name: response['name'] as String,
+      dateOfBirth: DateTime.parse(response['date_of_birth'] as String),
+      gender: response['gender'] as String,
+      ageGroup: response['age_group'] as String? ?? '',
+      relationship: response['relationship'] as String?,
+      createdAt: DateTime.parse(response['created_at'] as String),
+      updatedAt: DateTime.parse(response['updated_at'] as String),
+    );
+
+    ref.read(childNotifierProvider.notifier).setChild(child);
   }
 }

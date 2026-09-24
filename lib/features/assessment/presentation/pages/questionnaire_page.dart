@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/glass_components.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -193,7 +194,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
     if (_currentTabIndex > 0) {
       _tabController.animateTo(_currentTabIndex - 1);
     } else {
-      context.go('/child-profile');
+      context.go(AppRoutes.onboardingChildProfile);
     }
   }
 
@@ -224,7 +225,7 @@ class _QuestionnairePageState extends ConsumerState<QuestionnairePage>
           );
       if (!mounted) return;
       Navigator.of(context).pop(); // close dialog
-      context.go('/loading-analysis'); // ignore: use_build_context_synchronously
+      context.go(AppRoutes.onboardingAssessmentAnalyzing); // ignore: use_build_context_synchronously
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

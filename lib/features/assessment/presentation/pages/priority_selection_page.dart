@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -172,7 +173,7 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () => context.go('/loading-analysis'),
+                      onTap: () => context.go(AppRoutes.onboardingAssessmentAnalyzing),
                       child: Container(
                         width: 36,
                         height: 36,
@@ -324,7 +325,7 @@ class _PrioritySelectionPageState extends ConsumerState<PrioritySelectionPage> {
                       ),
                       child: TextButton(
                         onPressed: _selectedDomains.length == 3
-                            ? () => context.go('/dashboard')
+                            ? () => context.go(AppRoutes.home)
                             : null,
                         child: const Text(
                           'Start My Plan →',

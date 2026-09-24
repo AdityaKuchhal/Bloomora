@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ActivityPage extends StatelessWidget {
@@ -207,7 +208,7 @@ class ActivityPage extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {
                   // TODO: Start activity timer and tracking
-                  context.go('/activity-completion/$activityId');
+                  context.go(AppRoutes.activityCompletion(activityId));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

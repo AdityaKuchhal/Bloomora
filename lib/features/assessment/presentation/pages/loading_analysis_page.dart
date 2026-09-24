@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/cards/glass_card.dart';
@@ -524,7 +525,7 @@ class _LoadingAnalysisPageState extends ConsumerState<LoadingAnalysisPage>
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
           child: GestureDetector(
-            onTap: () => context.go('/priority-selection'),
+            onTap: () => context.go(AppRoutes.onboardingPriorities),
             child: Container(
               width: double.infinity,
               height: 56,

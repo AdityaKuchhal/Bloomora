@@ -1,156 +1,140 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../features/splash/presentation/pages/splash_page.dart';
-import '../../features/onboarding/presentation/pages/intro_page.dart';
+import '../../features/activities/presentation/pages/activity_completion_page.dart';
+import '../../features/activities/presentation/pages/activity_page.dart';
+import '../../features/assessment/presentation/pages/loading_analysis_page.dart';
+import '../../features/assessment/presentation/pages/priority_selection_page.dart';
+import '../../features/assessment/presentation/pages/questionnaire_page.dart';
 import '../../features/auth/presentation/pages/auth_page.dart';
 import '../../features/auth/presentation/pages/email_verification_page.dart';
-import '../../features/onboarding/presentation/pages/child_profile_page.dart';
-import '../../features/assessment/presentation/pages/questionnaire_page.dart';
-import '../../features/assessment/presentation/pages/priority_selection_page.dart';
-import '../../features/assessment/presentation/pages/loading_analysis_page.dart';
-import '../../features/dashboard/presentation/pages/dashboard_page.dart';
-import '../../features/activities/presentation/pages/activity_page.dart';
-import '../../features/activities/presentation/pages/activity_completion_page.dart';
-import '../../features/progress/presentation/pages/progress_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
-import '../../features/search/presentation/pages/search_page.dart';
-import '../../core/services/navigation_service.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
-
-// ── Route sets ────────────────────────────────────────────────────────────────
-
-// Requires authentication. Unauthenticated users are sent to /parent-signup.
-// /child-profile is protected: auth must come before profile entry.
-const _protectedRoutes = {
-  '/child-profile',
-  '/dashboard',
-  '/questionnaire',
-  '/priority-selection',
-  '/loading-analysis',
-  '/progress',
-  '/search',
-  '/profile',
-};
-
-// Only accessible when NOT authenticated.
-// Authenticated users landing here are sent to /dashboard.
-// NOTE: /parent-signup is included because after the new flow the router can
-// safely redirect authenticated users away from it without the flash problem
-// (AuthPage does its own explicit context.go after signup before the guard fires).
-const _authOnlyRoutes = {
-  '/parent-signup',
-  '/parent-signin',
-  '/verify-email',
-};
+import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../features/onboarding/presentation/pages/child_profile_page.dart';
+import '../../features/onboarding/presentation/pages/intro_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/progress/presentation/pages/progress_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/splash/presentation/pages/splash_page.dart';
+import '../widgets/feedback/not_found_screen.dart';
+import '../widgets/feedback/placeholder_screen.dart';
+import 'app_routes.dart';
+import 'app_shell.dart';
+import 'route_guards.dart';
 
 // ── Router ────────────────────────────────────────────────────────────────────
+//
+// Route table + a thin `redirect:` that delegates to route_guards.dart. All
+// auth/onboarding-step/back-navigation logic lives there — this file should
+// stay a plain map of path -> screen. See route_guards.dart's doc comments
+// for the guard design.
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: AppRoutes.splash,
     refreshListenable: _AuthRefreshNotifier(ref),
-    redirect: (context, state) async {
-      final authState = ref.read(authProvider);
-      final location = state.matchedLocation;
-
-      if (authState.isUnknown) return null;
-
-      final isAuthenticated = authState.isAuthenticated;
-      final isProtected = _protectedRoutes.any((r) => location.startsWith(r));
-      final isAuthOnly  = _authOnlyRoutes.any((r) => location.startsWith(r));
-
-      // Unauthenticated → auth screen
-      if (!isAuthenticated && isProtected) return '/parent-signup';
-
-      // Authenticated hitting auth-only route
-      if (isAuthenticated && isAuthOnly) {
-        // Let /verify-email through always
-        if (location.startsWith('/verify-email')) return null;
-        return null; // NavigationService handles routing from auth page
-      }
-
-      // Authenticated hitting splash or intro → smart route
-      if (isAuthenticated &&
-          (location == '/splash' || location == '/intro')) {
-        return await NavigationService.getPostLoginRoute();
-      }
-
-      return null;
-    },
+    redirect: (context, state) => evaluateRedirect(ref, state.matchedLocation),
     routes: [
-      // ── Pre-auth flow ───────────────────────────────────────────────────────
+      // ── Signed-out group ──────────────────────────────────────────────────
       GoRoute(
-        path: '/splash',
+        path: AppRoutes.splash,
         name: 'splash',
         builder: (context, state) => const SplashPage(),
       ),
       GoRoute(
-        path: '/intro',
-        name: 'intro',
+        path: AppRoutes.welcome,
+        name: 'welcome',
         builder: (context, state) => const IntroPage(),
       ),
-
-      // ── Auth ────────────────────────────────────────────────────────────────
-      // Both routes open AuthPage; initialIsSignUp controls which tab is active.
       GoRoute(
-        path: '/parent-signup',
-        name: 'parent-signup',
+        path: AppRoutes.signUp,
+        name: 'sign-up',
         builder: (context, state) {
           final email = state.uri.queryParameters['email'];
           return AuthPage(email: email, initialIsSignUp: true);
         },
       ),
       GoRoute(
-        path: '/parent-signin',
-        name: 'parent-signin',
+        path: AppRoutes.signIn,
+        name: 'sign-in',
         builder: (context, state) {
           final email = state.uri.queryParameters['email'];
           return AuthPage(email: email, initialIsSignUp: false);
         },
       ),
       GoRoute(
-        path: '/verify-email',
+        path: AppRoutes.verifyEmail,
         name: 'verify-email',
         builder: (context, state) {
           final email = state.uri.queryParameters['email'] ?? '';
           return EmailVerificationPage(email: email);
         },
       ),
-
-      // ── Post-auth flow ──────────────────────────────────────────────────────
       GoRoute(
-        path: '/child-profile',
-        name: 'child-profile',
-        builder: (context, state) => const ChildProfilePageNew(),
+        path: AppRoutes.forgotPassword,
+        name: 'forgot-password',
+        builder: (context, state) => const PlaceholderScreen(
+          title: 'Forgot password',
+          message: "Use 'Forgot password?' on the sign-in screen for now — "
+              'a dedicated screen is coming soon.',
+          safeActionLabel: 'Back to sign in',
+          safeActionRoute: AppRoutes.signIn,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        name: 'reset-password',
+        builder: (context, state) {
+          final code = state.uri.queryParameters['code'];
+          return ResetPasswordPage(code: code);
+        },
       ),
 
-      // ── Assessment ──────────────────────────────────────────────────────────
+      // ── Onboarding group ──────────────────────────────────────────────────
       GoRoute(
-        path: '/questionnaire',
-        name: 'questionnaire',
+        path: AppRoutes.onboardingConsent,
+        name: 'onboarding-consent',
+        // STUB: ConsentStepCheck always reports satisfied today (FT-017 owns
+        // the real table), so the guard never actually routes anyone here —
+        // this route exists so FT-017 only has to flip the check, not add a
+        // route. See route_guards.dart's ConsentStepCheck.
+        builder: (context, state) => const PlaceholderScreen(
+          title: 'Consent',
+          message: 'Consent collection is coming soon.',
+          safeActionLabel: 'Continue',
+          safeActionRoute: AppRoutes.onboardingChildProfile,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingChildProfile,
+        name: 'onboarding-child-profile',
+        builder: (context, state) => const ChildProfilePageNew(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingAssessment,
+        name: 'onboarding-assessment',
         builder: (context, state) => const QuestionnairePage(),
       ),
       GoRoute(
-        path: '/priority-selection',
-        name: 'priority-selection',
-        builder: (context, state) => const PrioritySelectionPage(),
-      ),
-      GoRoute(
-        path: '/loading-analysis',
-        name: 'loading-analysis',
+        path: AppRoutes.onboardingAssessmentAnalyzing,
+        name: 'onboarding-assessment-analyzing',
         builder: (context, state) => const LoadingAnalysisPage(),
       ),
-
-      // ── Authenticated app ───────────────────────────────────────────────────
       GoRoute(
-        path: '/dashboard',
-        name: 'dashboard',
-        builder: (context, state) => const DashboardPage(),
+        path: AppRoutes.onboardingPriorities,
+        name: 'onboarding-priorities',
+        builder: (context, state) => const PrioritySelectionPage(),
       ),
+
+      // ── Authenticated + onboarded: detail routes (no bottom nav) ─────────
+      // Pushed on top of the shell rather than nested inside it, so the
+      // bottom nav chrome simply isn't part of this screen's tree — the
+      // simpler of the two options GoRouter supports here (see FT-003
+      // report for the tradeoff).
       GoRoute(
-        path: '/activity/:activityId',
+        path: AppRoutes.activityPattern,
         name: 'activity',
         builder: (context, state) {
           final activityId = state.pathParameters['activityId']!;
@@ -158,49 +142,55 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/activity-completion/:activityId',
+        path: AppRoutes.activityCompletionPattern,
         name: 'activity-completion',
         builder: (context, state) {
           final activityId = state.pathParameters['activityId']!;
           return ActivityCompletionPage(activityId: activityId);
         },
       ),
-      GoRoute(
-        path: '/progress',
-        name: 'progress',
-        builder: (context, state) => const ProgressPage(),
-      ),
-      GoRoute(
-        path: '/search',
-        name: 'search',
-        builder: (context, state) => const SearchPage(),
-      ),
-      GoRoute(
-        path: '/profile',
-        name: 'profile',
-        builder: (context, state) => const ProfilePage(),
+
+      // ── Authenticated + onboarded: bottom-nav shell ───────────────────────
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.home,
+              name: 'home',
+              builder: (context, state) => const DashboardPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.search,
+              name: 'search',
+              builder: (context, state) => const SearchPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.progress,
+              name: 'progress',
+              builder: (context, state) => const ProgressPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.profile,
+              name: 'profile',
+              builder: (context, state) => const ProfilePage(),
+            ),
+          ]),
+        ],
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Page not found',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => context.go('/dashboard'),
-              child: const Text('Go to Dashboard'),
-            ),
-          ],
-        ),
-      ),
-    ),
+    // Unknown AND deprecated routes both land here: nothing in this table
+    // references an old path anymore, so any leftover bookmark/hardcoded
+    // link to e.g. /dashboard or /parent-signup naturally falls through to
+    // this, same as a genuinely unknown path — never a crash.
+    errorBuilder: (context, state) => const NotFoundScreen(),
   );
 });
 

@@ -5,6 +5,7 @@ import '../../domain/models/comm_slot_state.dart';
 import '../../domain/models/question_model.dart';
 import '../../domain/repositories/question_repository.dart';
 import '../../data/repositories/question_repository_impl.dart';
+import '../../../../core/router/route_guards.dart';
 import '../../../../core/services/supabase_service.dart';
 
 part 'questionnaire_provider.g.dart';
@@ -177,6 +178,12 @@ class QuestionnaireNotifier extends _$QuestionnaireNotifier {
 
       // STEP 4 — Store assessmentId in state for downstream use
       state = state.copyWith(assessmentId: assessmentId);
+
+      // See route_guards.dart's OnboardingCompleteCache doc comment: not a
+      // fix for today's flow (this user can't have been cached "complete"
+      // if AssessmentStepCheck was still failing them into this screen),
+      // but keeps a future retake/re-assessment flow correct too.
+      ref.read(onboardingCompleteCacheProvider.notifier).invalidate(userId);
 
       return assessmentId;
     } catch (e) {
