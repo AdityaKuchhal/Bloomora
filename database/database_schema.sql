@@ -1,3 +1,20 @@
+-- ============================================================================
+-- SUPERSEDED — not the live schema, not applied anywhere, not maintained.
+--
+-- This file predates FT-006 (Database Schema & Migration Baseline) and was
+-- never a versioned migration. It defines table names (child_profiles,
+-- assessment_sessions, assessment_results, development_domains, age_groups)
+-- that DO NOT match either the actual live/dev Supabase project (which has
+-- parents/children/assessments/assessment_responses/domain_results — see
+-- docs/audit-findings.md Section D) or the new committed baseline (see
+-- supabase/migrations/, which uses profiles/children/child_caregivers/...
+-- per the TRD).
+--
+-- The authoritative, committed schema now lives in supabase/migrations/ —
+-- see supabase/migrations/README.md. Kept here rather than deleted only as
+-- a historical artifact; do not run this file against any database.
+-- ============================================================================
+
 -- Bloomora Database Schema
 -- AmazingPath Kids - Child Development Platform
 -- PostgreSQL + Supabase
