@@ -31,6 +31,16 @@ export const envSchema = z.object({
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
   SENTRY_DSN: z.string().optional(),
+
+  // FT-008: neither of these exists anywhere in this repo today (checked —
+  // no CI step, no .env.example entry) — optional, with lib/sentry.ts
+  // falling back to package.json's version field when both are absent.
+  // RELEASE_SHA is the more useful of the two in practice (a deploy-time
+  // git SHA a CI/CD pipeline would inject), APP_VERSION is a coarser
+  // human-readable fallback; both are accepted since the ticket didn't
+  // mandate picking one.
+  RELEASE_SHA: z.string().optional(),
+  APP_VERSION: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
 

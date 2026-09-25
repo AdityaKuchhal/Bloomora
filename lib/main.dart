@@ -11,6 +11,7 @@ import 'core/api/api_client.dart';
 import 'core/config/app_config.dart';
 import 'core/config/config_error_screen.dart';
 import 'core/config/environment.dart';
+import 'core/monitoring/monitoring_init.dart';
 import 'core/services/supabase_service.dart';
 import 'features/auth/data/services/auth_service.dart';
 
@@ -51,6 +52,12 @@ void main() async {
     runApp(ConfigErrorApp(environment: environment, missingKeys: missingConfigKeys));
     return;
   }
+
+  // Monitoring (Sentry + PostHog) — before Supabase, so crashes during
+  // Supabase/Hive/ApiClient init below are also captured. Silent on
+  // failure by design (see initMonitoring's doc comment) — never blocks
+  // startup.
+  await initMonitoring();
 
   // Initialize Supabase
   await SupabaseService.initialize();

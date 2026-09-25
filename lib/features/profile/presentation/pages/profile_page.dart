@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/monitoring/analytics_event.dart';
+import '../../../../core/monitoring/analytics_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -120,7 +122,16 @@ class ProfilePage extends ConsumerWidget {
                       context,
                       'Sign Out',
                       Icons.logout,
-                      () => ref.read(authProvider.notifier).signOut(),
+                      () {
+                        // Fired synchronously before the async signOut()
+                        // call, not after — route_guards.dart redirects to
+                        // /sign-in the instant authProvider flips
+                        // unauthenticated, which can tear this widget down
+                        // before an awaited post-signOut callback runs.
+                        ref.read(analyticsServiceProvider).capture(const SignoutCompleted());
+                        ref.read(analyticsServiceProvider).reset();
+                        ref.read(authProvider.notifier).signOut();
+                      },
                       isDestructive: true,
                     ),
                   ],
