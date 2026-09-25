@@ -17,6 +17,18 @@ class AppConfig {
 
   static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
+  /// Optional — not in [_requiredConfig]. Sentry DSNs and PostHog project
+  /// keys are designed to be public/client-embeddable (unlike a service
+  /// role key), so bundling them via the same per-environment .env file ->
+  /// Flutter-asset mechanism as API_BASE_URL/SUPABASE_ANON_KEY is
+  /// appropriate. Left empty in an environment with no monitoring project
+  /// configured yet — ErrorReporter/AnalyticsService init treats an empty
+  /// value as "skip init," not an error (FT-008: monitoring failures must
+  /// never block a user flow).
+  static String get sentryDsn => dotenv.env['SENTRY_DSN'] ?? '';
+  static String get posthogKey => dotenv.env['POSTHOG_KEY'] ?? '';
+  static String get posthogHost => dotenv.env['POSTHOG_HOST'] ?? '';
+
   static String get googleIosClientId =>
       const String.fromEnvironment(
         'GOOGLE_IOS_CLIENT_ID',

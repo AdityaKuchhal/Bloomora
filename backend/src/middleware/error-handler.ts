@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../config/logger.js';
 import { ApiError } from '../lib/api-error.js';
 import { sendError } from '../lib/response.js';
+import { captureException } from '../lib/sentry.js';
 
 const GENERIC_SERVER_MESSAGE = 'Something went wrong on our side. Please try again.';
 
@@ -54,6 +55,11 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     },
     'unhandled exception',
   );
+  // FT-008: only truly unhandled exceptions reach Sentry — a thrown
+  // ApiError above is an intentional, already-safe 4xx/5xx and returns
+  // before this point, matching "backend exceptions are captured" (not
+  // every handled 4xx).
+  captureException(error, { requestId, route: req.originalUrl, method: req.method });
 
   sendError(res, 500, {
     code: 'INTERNAL_ERROR',

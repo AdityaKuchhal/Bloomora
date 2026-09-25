@@ -12,6 +12,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/monitoring/analytics_event.dart';
+import '../../../../core/monitoring/analytics_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
@@ -118,6 +120,7 @@ class _AuthPageState extends ConsumerState<AuthPage>
       return;
     }
     setState(() => _isLoading = true);
+    ref.read(analyticsServiceProvider).capture(const SignupStarted());
     try {
       await ref.read(authProvider.notifier).signUp(
             email: _emailController.text.trim(),
@@ -130,6 +133,12 @@ class _AuthPageState extends ConsumerState<AuthPage>
         // (email confirmation is disabled in Supabase)
         final user = SupabaseService.currentUser;
         if (user != null && user.emailConfirmedAt != null) {
+          // Confirmed immediately (no OTP step) — this is the actual
+          // completion moment for this path. The OTP-required path's
+          // completion is wired at email_verification_page.dart's
+          // successful _verifyOTP() instead, not here.
+          ref.read(analyticsServiceProvider).capture(const SignupCompleted(method: 'email'));
+          ref.read(analyticsServiceProvider).identify(user.id);
           // User is confirmed — load their child (if any) for theme/state,
           // then go to /home; route_guards.dart redirects to the right
           // onboarding step if one isn't finished yet.
@@ -171,6 +180,11 @@ class _AuthPageState extends ConsumerState<AuthPage>
             password: _siPasswordController.text,
           );
       if (!mounted) return;
+      ref.read(analyticsServiceProvider).capture(const SigninCompleted(method: 'email'));
+      final user = SupabaseService.currentUser;
+      if (user != null) {
+        ref.read(analyticsServiceProvider).identify(user.id);
+      }
       await NavigationService.loadActiveChildIfAny(ref);
       if (mounted) context.go(AppRoutes.home);
     } catch (e) {
@@ -239,6 +253,16 @@ class _AuthPageState extends ConsumerState<AuthPage>
       );
 
       if (!mounted) return;
+      // Supabase's signInWithIdToken() both signs up a new user and signs
+      // in a returning one — there's no separate "was this a new account"
+      // signal available here to distinguish signup vs signin, so this is
+      // recorded as signin_completed either way (a reasonable
+      // simplification, flagged rather than silently picked).
+      ref.read(analyticsServiceProvider).capture(const SigninCompleted(method: 'google'));
+      final user = SupabaseService.currentUser;
+      if (user != null) {
+        ref.read(analyticsServiceProvider).identify(user.id);
+      }
       await NavigationService.loadActiveChildIfAny(ref);
       if (mounted) context.go(AppRoutes.home);
     } catch (e) {

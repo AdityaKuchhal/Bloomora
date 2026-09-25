@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/monitoring/analytics_event.dart';
+import '../../../../core/monitoring/analytics_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/navigation_service.dart';
 import '../../../../core/services/supabase_service.dart';
@@ -100,6 +102,14 @@ class _EmailVerificationPageState
       );
 
       if (!mounted) return;
+      // The true completion moment for the OTP-required signup path —
+      // auth_page.dart's _handleSignUp() only fires signup_completed for
+      // the immediately-confirmed (no-OTP) branch.
+      ref.read(analyticsServiceProvider).capture(const SignupCompleted(method: 'email'));
+      final user = SupabaseService.currentUser;
+      if (user != null) {
+        ref.read(analyticsServiceProvider).identify(user.id);
+      }
       await NavigationService.loadActiveChildIfAny(ref);
       if (!mounted) return; // guard after second await
       context.go(AppRoutes.home); // ignore: use_build_context_synchronously

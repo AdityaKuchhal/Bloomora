@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/monitoring/analytics_event.dart';
+import '../../../../core/monitoring/analytics_service.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/router/route_guards.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -241,6 +243,12 @@ class _ChildProfilePageNewState extends ConsumerState<ChildProfilePageNew>
       // if they just created their first child), but keeps a future
       // add-another-child flow correct too.
       ref.read(onboardingCompleteCacheProvider.notifier).invalidate(parentId);
+
+      // Beyond FT-008's literal "auth call sites" scope, but flagged there
+      // as a real, existing screen — the practical activation signal for
+      // this app (see analytics_event.dart's ChildProfileCreated doc
+      // comment for the reasoning/caveat behind this interpretation).
+      ref.read(analyticsServiceProvider).capture(const ChildProfileCreated());
 
       if (mounted) context.go(AppRoutes.onboardingAssessment);
     } catch (e) {
